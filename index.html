@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Week 8 · Intro to Web Exploitation · CTF Practice</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b0e14'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='18' font-weight='700' text-anchor='middle' fill='%237ee787'%3E%7B%7D%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+<div class="wrap">
+  <header class="top"></header>
+  <h1>Week 8 · pick a challenge</h1>
+  <p class="lead">Each challenge opens a mini web browser in the page, with an inspector next to it that shows every request and response. This backup copy has every challenge open. <span id="count" class="muted"></span></p>
+  <div id="grid"></div>
+  <footer><span>Flags on this site look like <code>flipped{...}</code>.</span><span>Paste in the terminal: <kbd>Ctrl+V</kbd> or <kbd>Ctrl+Shift+V</kbd>. Stop anything: <kbd>Ctrl+C</kbd>.</span><a href="admin.html">admin</a></footer>
+</div>
+<script src="config.js"></script>
+<script src="shell.js"></script>
+<script src="minipy.js"></script>
+<script src="term.js"></script>
+<script src="app.js"></script>
+<script>CTFApp.pageIndex().catch(e => { document.getElementById('grid').innerHTML = '<div class="note err">Could not load challenges.json: ' + e.message + '</div>'; });</script>
+</body>
+</html>

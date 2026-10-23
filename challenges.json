@@ -1,0 +1,590 @@
+{
+ "version": 1,
+ "generated": "2026-10-15",
+ "site": {
+  "title": "CTF Practice",
+  "flagFormat": "flipped{...}"
+ },
+ "groups": [
+  {
+   "id": "wk8",
+   "title": "Intro to Web Exploitation · week 8"
+  }
+ ],
+ "challenges": [
+  {
+   "slug": "inspect-the-market",
+   "group": "wk8",
+   "name": "Inspect the Market",
+   "category": "Web Exploitation",
+   "difficulty": "easy",
+   "idea": "the server sends your browser the whole page, comments and all; the inspector shows it",
+   "description": "A little shop. The browser on the left is already pointed at it. Use the inspector on the right to read what the server actually sent back.",
+   "hints": [
+    "Click the first row in the Network panel (the right side), then open its Response tab: that is what the server sent.",
+    "Web pages often carry notes the author left in HTML comments: <!-- like this -->. The browser does not draw them, but they were still sent to you."
+   ],
+   "proxy": {
+    "host": "market.flippedbyneel.com",
+    "flag": "flipped{th3_wh0l3_p4g3_1s_y0urs_80f3}",
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "method": "GET",
+      "headers": {
+       "X-Fanum-Tax": "one grape per bag, collected at the door"
+      },
+      "body": "<h1>Fresh Market</h1><p>Welcome to our little corner shop. Everything is fresh today.</p>\n<!-- staff note, remove before launch: the coupon code is {flag} -->\n<p><a href=\"/deals\">today's deals</a></p>"
+     },
+     {
+      "path": "/deals",
+      "method": "GET",
+      "body": "<h1>Today's deals</h1><div class=\"card\">Nothing on sale right now. (Psst: the good stuff is written in the home page's source.)</div><p class=\"mut\">Sold out: Chimpanzini Bananini bananas (were 67&cent; each). Back next week: Brr Brr Patapim basil.</p><p><a href=\"/\">back home</a></p>"
+     }
+    ]
+   },
+   "flagHash": "a4b10ca0d10180c85e8bf19ee4ec7f3b7d09a96ed4c58898d3eedaaa4ab02b78",
+   "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "wrong-turn",
+   "group": "wk8",
+   "name": "Wrong Turn",
+   "category": "Web Exploitation",
+   "difficulty": "easy",
+   "idea": "the browser follows a redirect and never shows the first reply; the inspector kept a copy of it",
+   "description": "A diner with a side door. Click the link and you arrive somewhere else. The interesting part is the reply you were hurried past.",
+   "hints": [
+    "Click the link in the browser on the left, then look at the inspector: there are new rows, and one of them is the side-door row with Status 302.",
+    "Click the 302 row and open its Response tab. The browser followed the redirect and never showed you that first reply, but the inspector saved it."
+   ],
+   "proxy": {
+    "host": "detour.flippedbyneel.com",
+    "flag": "flipped{th3_d00r_y0u_sk1pp3d_dff5}",
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "method": "GET",
+      "body": "<h1>Detour Diner</h1><p>Our front door is under repair. Use the side door and you will be seated in a moment.</p><div class=\"card\">When a page moves you along, the browser does not stop to read the note on the old door. The inspector does.</div><p><a href=\"/side-door\">the side door &rarr;</a></p>"
+     },
+     {
+      "path": "/side-door",
+      "method": "GET",
+      "redirect": "/table",
+      "redirectBody": "<!doctype html><title>Moved</title><p>This door moved. <b>Staff note: the passphrase is {flag}</b></p><p><a href=\"/table\">continue &rarr;</a></p>"
+     },
+     {
+      "path": "/table",
+      "method": "GET",
+      "body": "<h1>Your table</h1><p>Welcome in. There is nothing on this page: the good part was the door you were hurried past.</p><p class=\"mut\">Today's specials: Trippi Troppi fries, Bombombini Gusini goose-egg omelette, and a Cappuccino Assassino to go.</p><p><a href=\"/\">back</a></p>"
+     }
+    ]
+   },
+   "flagHash": "b2ed6190b03cc83a982ddc7cbce00291765063e122b7b0a00a5257efa4d9a403",
+   "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "front-desk",
+   "group": "wk8",
+   "name": "Front Desk",
+   "category": "Web Exploitation",
+   "difficulty": "easy",
+   "idea": "a check that runs in your browser is written in the page the server sent you",
+   "description": "A hotel front desk. The sign-in checks your passphrase right there in the page. Read what the page actually sent you.",
+   "hints": [
+    "Click the first row (the sign-in page) in the Network panel and open its Response tab: there is a <script> in there.",
+    "The script compares what you type to one fixed passphrase. Type that passphrase into the passphrase box and sign in."
+   ],
+   "proxy": {
+    "host": "desk.flippedbyneel.com",
+    "flag": "flipped{th3_ch3ck_1s_1n_th3_p4g3_6c59}",
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "method": "GET",
+      "body": "<h1>Sunset Hotel &middot; Front Desk</h1><p>Please sign in to see your booking.</p><form method=\"POST\" action=\"/desk\"><input name=\"password\" placeholder=\"passphrase\"> <button>sign in</button></form><div class=\"card\">Our sign-in check is tiny: it runs inside this very page.</div>\n<script>\nfunction signIn(p) { return p === 'c0nci3rg3'; }\n</script>"
+     },
+     {
+      "path": "/desk",
+      "method": "POST",
+      "when": {
+       "bodyParam": {
+        "password": "c0nci3rg3"
+       }
+      },
+      "body": "<h1>Welcome back</h1><p>Booking confirmed. Your welcome gift: <code>{flag}</code></p><p class=\"mut\">Room 67, the Ballerina Cappuccina suite: a free cappuccino every morning and a dance floor where the carpet used to be.</p>"
+     },
+     {
+      "path": "/desk",
+      "method": "POST",
+      "body": "<h1>Wrong passphrase</h1><p>That is not the passphrase. Read the sign-in page's script again.</p><p><a href=\"/\">back</a></p>"
+     }
+    ]
+   },
+   "flagHash": "af376966c5a09937d538383e45ebaa668108bdcd4edc2a0f47fba874388cff0d",
+   "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "price-check",
+   "group": "wk8",
+   "name": "Price Check",
+   "category": "Web Exploitation",
+   "difficulty": "medium",
+   "idea": "the shop puts every price in the order form your browser sends; the server adds up whatever numbers arrive",
+   "description": "Loot Lane, an online store. Your shopping list costs way more than your wallet holds. Check out anyway.",
+   "hints": [
+    "Type the quantities from the shopping list, press Add to cart, then Place order. Your wallet says no. Click the new order row in the Network panel and open its Payload tab: look at everything your browser sent besides the quantities.",
+    "Every price rides along in the order your browser sends, and the shop just adds them up. Press Edit and Resend, change the prices in the Body box to tiny numbers (keep the quantities the same) and press Send."
+   ],
+   "proxy": {
+    "host": "shop.flippedbyneel.com",
+    "flag": "flipped{y0u_s3t_th3_pr1c3_3c6f}",
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "method": "GET",
+      "body": "<div class=\"ll\"><div class=\"ll-top\"><span class=\"ll-logo\">Loot<b>Lane</b></span><span class=\"ll-search\">Search consoles, toys, plushies&hellip;</span><span class=\"ll-wallet\">Wallet <b>$25.00</b></span></div><div class=\"ll-nav\"><span>Consoles</span><span>Toys</span><span>Plushies</span><span>New in</span><span class=\"ll-hot\">Deals</span></div><div class=\"ll-note\"><b>&#128221; Your shopping list</b><ul><li>3 &times; PS5 Console</li><li>2 &times; Skibidi Toilet</li><li>2 &times; Tralalero Tralala</li></ul><p>Your wallet only holds $25.00. Good luck.</p></div><form method=\"POST\" action=\"/cart\"><div class=\"ll-grid\"><div class=\"ll-card\"><div class=\"ll-pic\" style=\"background:#e6edfb\">&#127918;</div><div class=\"ll-name\">PS5 Console</div><div class=\"ll-desc\">Disc edition &middot; 1 TB &middot; 1 controller</div><div class=\"ll-stars\">&#9733;&#9733;&#9733;&#9733;&#9733; <span>(2,413)</span></div><div class=\"ll-price\">$499.99</div><input type=\"hidden\" name=\"price_ps5\" value=\"499.99\"><label class=\"ll-qty\">Qty <input type=\"number\" name=\"qty_ps5\" value=\"0\" min=\"0\" max=\"9\"></label></div><div class=\"ll-card\"><div class=\"ll-pic\" style=\"background:#e3f4ea\">&#128701;</div><div class=\"ll-name\">Skibidi Toilet</div><div class=\"ll-desc\">Singing figure &middot; 30 cm &middot; batteries included</div><div class=\"ll-stars\">&#9733;&#9733;&#9733;&#9733;&#9733; <span>(967)</span></div><div class=\"ll-price\">$39.99</div><input type=\"hidden\" name=\"price_skibidi\" value=\"39.99\"><label class=\"ll-qty\">Qty <input type=\"number\" name=\"qty_skibidi\" value=\"0\" min=\"0\" max=\"9\"></label></div><div class=\"ll-card\"><div class=\"ll-pic\" style=\"background:#fde8e2\">&#129416;</div><div class=\"ll-name\">Tralalero Tralala</div><div class=\"ll-desc\">Shark plush in sneakers &middot; 40 cm</div><div class=\"ll-stars\">&#9733;&#9733;&#9733;&#9733;&#9733; <span>(1,208)</span></div><div class=\"ll-price\">$29.99</div><input type=\"hidden\" name=\"price_tralalero\" value=\"29.99\"><label class=\"ll-qty\">Qty <input type=\"number\" name=\"qty_tralalero\" value=\"0\" min=\"0\" max=\"9\"></label></div></div><div class=\"ll-bar\"><span class=\"ll-fine\">Speedy checkout: each price travels along with your order.</span><button class=\"ll-btn\">Add to cart</button></div></form></div>\n<style>\n.ll{--ink:#1d2433;--mut:#667085;--line:#e4e7ec;--brand:#e8590c;--ok:#12805c;--bad:#c4320a;container-type:inline-size;max-width:760px;margin:0 auto;font:14px/1.45 system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;color:var(--ink)}\n.ll *{box-sizing:border-box}\n.ll .ll-top{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}\n.ll .ll-logo{font-weight:800;font-size:19px;letter-spacing:-.02em;white-space:nowrap}.ll .ll-logo b{color:var(--brand)}\n.ll .ll-search{flex:1;min-width:0;padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:#f9fafb;color:#98a2b3;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n.ll .ll-wallet{white-space:nowrap;padding:5px 11px;border:1px solid #ffd8a8;border-radius:999px;background:#fff4e6;color:#7a2e0e;font-size:13px}\n.ll .ll-nav{display:flex;gap:16px;padding:7px 0;border-bottom:1px solid var(--line);color:var(--mut);font-size:13px;white-space:nowrap;overflow:hidden}.ll .ll-nav .ll-hot{color:var(--bad);font-weight:600}\n.ll .ll-note{margin:10px 0 12px;padding:9px 14px;border:1px solid #f5d76e;border-radius:10px;background:#fff9db;transform:rotate(-.4deg)}\n.ll .ll-note b{display:block;margin-bottom:4px}.ll .ll-note ul{display:flex;flex-wrap:wrap;gap:2px 16px;margin:0;padding:0;list-style:none;font-weight:600}.ll .ll-note li:before{content:\"\\2610\";margin-right:5px;color:#b08900}.ll .ll-note p{margin:4px 0 0;color:#7a5d00;font-size:13px}\n.ll .ll-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}\n.ll .ll-card{display:flex;flex-direction:column;padding:10px;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 1px 2px rgba(16,24,40,.06)}\n.ll .ll-pic{display:grid;place-items:center;height:72px;border-radius:9px;font-size:40px;line-height:1}\n.ll .ll-name{margin-top:8px;font-weight:700}.ll .ll-desc{flex:1;color:var(--mut);font-size:12px}\n.ll .ll-stars{color:#f59f00;font-size:12px;letter-spacing:1px}.ll .ll-stars span{color:var(--mut);letter-spacing:0}\n.ll .ll-price{margin:2px 0 8px;font-size:18px;font-weight:800}\n.ll .ll-qty{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--mut);font-size:13px}\n.ll .ll-qty input{width:64px;padding:5px 8px;border:1px solid #d0d5dd;border-radius:8px;background:#fff;color:var(--ink);font:inherit;text-align:center}\n.ll .ll-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}\n.ll .ll-fine{color:var(--mut);font-size:12px}\n.ll .ll-btn{padding:9px 18px;border:0;border-radius:999px;background:var(--brand);color:#fff;font:inherit;font-weight:700;white-space:nowrap;cursor:pointer}.ll .ll-btn:hover{background:#d9480f}\n.ll .ll-steps{display:flex;gap:6px;margin:12px 0 4px;padding:0;list-style:none;color:#98a2b3;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}\n.ll .ll-steps li+li:before{content:\"\\203A\";margin-right:6px}.ll .ll-steps .on{color:var(--brand)}\n.ll .ll-h{margin:4px 0 10px;color:var(--ink);font:800 22px/1.25 system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;letter-spacing:-.01em}\n.ll .ll-cart{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:14px;align-items:start}\n.ll .ll-line{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}\n.ll .ll-thumb{display:grid;place-items:center;flex:none;width:46px;height:46px;border-radius:8px;font-size:26px}\n.ll .ll-ln{flex:1;min-width:0}.ll .ll-ln span{display:block;color:var(--mut);font-size:12px}.ll .ll-lt{font-weight:700;white-space:nowrap}\n.ll .ll-sum{padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#f9fafb}\n.ll .ll-row{display:flex;justify-content:space-between;gap:10px;padding:3px 0}.ll .ll-row span:last-child{white-space:nowrap}\n.ll .ll-tot{margin-top:6px;padding-top:8px;border-top:1px solid var(--line);font-size:16px;font-weight:800}\n.ll .ll-wal{color:#7a2e0e}.ll .ll-free{color:var(--ok);font-weight:600}\n.ll .ll-sum .ll-btn{width:100%;margin:10px 0 6px}.ll .ll-sum a,.ll .ll-back{color:var(--mut);font-size:13px}\n.ll .ll-msg{margin:14px 0;padding:18px;border-radius:12px;text-align:center}\n.ll .ll-msg.ok{border:1px solid #abefc6;background:#ecfdf3}.ll .ll-msg.bad{border:1px solid #fecdca;background:#fef3f2}\n.ll .ll-icon{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:50%;color:#fff;font-size:24px;font-weight:800}\n.ll .ok .ll-icon{background:var(--ok)}.ll .bad .ll-icon{background:var(--bad)}\n.ll .ll-msg .ll-h{margin:8px 0 4px}.ll .ll-msg p{margin:4px 0;color:#475467}\n.ll .ll-rcpt{max-width:380px;margin:0 auto 14px;padding:10px 14px;border:1px dashed #d0d5dd;border-radius:10px;background:#fff}\n.ll .ll-code{max-width:380px;margin:0 auto;padding:12px 14px;border-radius:10px;background:var(--ink);color:#fff;text-align:center}\n.ll .ll-code span{display:block;color:#98a2b3;font-size:12px;text-transform:uppercase;letter-spacing:.06em}\n.ll .ll-code code{display:inline-block;margin-top:4px;padding:0;background:none;color:#ffd8a8;font:700 15px/1.4 ui-monospace,Menlo,Consolas,monospace;word-break:break-all}\n@container (max-width:470px){.ll .ll-search{display:none}.ll .ll-cart{grid-template-columns:minmax(0,1fr)}.ll .ll-bar{flex-direction:column;align-items:stretch}}\n</style>"
+     },
+     {
+      "path": "/cart",
+      "method": "POST",
+      "body": "<div class=\"ll\"><div class=\"ll-top\"><span class=\"ll-logo\">Loot<b>Lane</b></span><span class=\"ll-search\">Search consoles, toys, plushies&hellip;</span><span class=\"ll-wallet\">Wallet <b>$25.00</b></span></div><ol class=\"ll-steps\"><li class=\"on\">Shop</li><li class=\"on\">Cart</li><li>Done</li></ol><h1 class=\"ll-h\">Your cart</h1><div class=\"ll-cart\"><div><div class=\"ll-line\"><div class=\"ll-thumb\" style=\"background:#e6edfb\">&#127918;</div><div class=\"ll-ln\"><b>PS5 Console</b><span>${form:price_ps5} each &middot; Qty {form:qty_ps5}</span></div><div class=\"ll-lt\">${total:price_ps5*qty_ps5}</div></div><div class=\"ll-line\"><div class=\"ll-thumb\" style=\"background:#e3f4ea\">&#128701;</div><div class=\"ll-ln\"><b>Skibidi Toilet</b><span>${form:price_skibidi} each &middot; Qty {form:qty_skibidi}</span></div><div class=\"ll-lt\">${total:price_skibidi*qty_skibidi}</div></div><div class=\"ll-line\"><div class=\"ll-thumb\" style=\"background:#fde8e2\">&#129416;</div><div class=\"ll-ln\"><b>Tralalero Tralala</b><span>${form:price_tralalero} each &middot; Qty {form:qty_tralalero}</span></div><div class=\"ll-lt\">${total:price_tralalero*qty_tralalero}</div></div><p class=\"ll-fine\">Your list: 3 &times; PS5 Console, 2 &times; Skibidi Toilet, 2 &times; Tralalero Tralala.</p></div><div class=\"ll-sum\"><div class=\"ll-row\"><span>Subtotal</span><span>${total:price_ps5*qty_ps5+price_skibidi*qty_skibidi+price_tralalero*qty_tralalero}</span></div><div class=\"ll-row\"><span>Shipping</span><span class=\"ll-free\">FREE</span></div><div class=\"ll-row ll-tot\"><span>Order total</span><span>${total:price_ps5*qty_ps5+price_skibidi*qty_skibidi+price_tralalero*qty_tralalero}</span></div><div class=\"ll-row ll-wal\"><span>Your wallet</span><span>$25.00</span></div><form method=\"POST\" action=\"/order\"><input type=\"hidden\" name=\"price_ps5\" value=\"{form:price_ps5}\"><input type=\"hidden\" name=\"qty_ps5\" value=\"{form:qty_ps5}\"><input type=\"hidden\" name=\"price_skibidi\" value=\"{form:price_skibidi}\"><input type=\"hidden\" name=\"qty_skibidi\" value=\"{form:qty_skibidi}\"><input type=\"hidden\" name=\"price_tralalero\" value=\"{form:price_tralalero}\"><input type=\"hidden\" name=\"qty_tralalero\" value=\"{form:qty_tralalero}\"><button class=\"ll-btn\">Place order</button></form><a href=\"/\">&larr; keep shopping</a></div></div></div>\n<style>\n.ll{--ink:#1d2433;--mut:#667085;--line:#e4e7ec;--brand:#e8590c;--ok:#12805c;--bad:#c4320a;container-type:inline-size;max-width:760px;margin:0 auto;font:14px/1.45 system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;color:var(--ink)}\n.ll *{box-sizing:border-box}\n.ll .ll-top{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}\n.ll .ll-logo{font-weight:800;font-size:19px;letter-spacing:-.02em;white-space:nowrap}.ll .ll-logo b{color:var(--brand)}\n.ll .ll-search{flex:1;min-width:0;padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:#f9fafb;color:#98a2b3;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n.ll .ll-wallet{white-space:nowrap;padding:5px 11px;border:1px solid #ffd8a8;border-radius:999px;background:#fff4e6;color:#7a2e0e;font-size:13px}\n.ll .ll-nav{display:flex;gap:16px;padding:7px 0;border-bottom:1px solid var(--line);color:var(--mut);font-size:13px;white-space:nowrap;overflow:hidden}.ll .ll-nav .ll-hot{color:var(--bad);font-weight:600}\n.ll .ll-note{margin:10px 0 12px;padding:9px 14px;border:1px solid #f5d76e;border-radius:10px;background:#fff9db;transform:rotate(-.4deg)}\n.ll .ll-note b{display:block;margin-bottom:4px}.ll .ll-note ul{display:flex;flex-wrap:wrap;gap:2px 16px;margin:0;padding:0;list-style:none;font-weight:600}.ll .ll-note li:before{content:\"\\2610\";margin-right:5px;color:#b08900}.ll .ll-note p{margin:4px 0 0;color:#7a5d00;font-size:13px}\n.ll .ll-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}\n.ll .ll-card{display:flex;flex-direction:column;padding:10px;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 1px 2px rgba(16,24,40,.06)}\n.ll .ll-pic{display:grid;place-items:center;height:72px;border-radius:9px;font-size:40px;line-height:1}\n.ll .ll-name{margin-top:8px;font-weight:700}.ll .ll-desc{flex:1;color:var(--mut);font-size:12px}\n.ll .ll-stars{color:#f59f00;font-size:12px;letter-spacing:1px}.ll .ll-stars span{color:var(--mut);letter-spacing:0}\n.ll .ll-price{margin:2px 0 8px;font-size:18px;font-weight:800}\n.ll .ll-qty{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--mut);font-size:13px}\n.ll .ll-qty input{width:64px;padding:5px 8px;border:1px solid #d0d5dd;border-radius:8px;background:#fff;color:var(--ink);font:inherit;text-align:center}\n.ll .ll-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}\n.ll .ll-fine{color:var(--mut);font-size:12px}\n.ll .ll-btn{padding:9px 18px;border:0;border-radius:999px;background:var(--brand);color:#fff;font:inherit;font-weight:700;white-space:nowrap;cursor:pointer}.ll .ll-btn:hover{background:#d9480f}\n.ll .ll-steps{display:flex;gap:6px;margin:12px 0 4px;padding:0;list-style:none;color:#98a2b3;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}\n.ll .ll-steps li+li:before{content:\"\\203A\";margin-right:6px}.ll .ll-steps .on{color:var(--brand)}\n.ll .ll-h{margin:4px 0 10px;color:var(--ink);font:800 22px/1.25 system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;letter-spacing:-.01em}\n.ll .ll-cart{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:14px;align-items:start}\n.ll .ll-line{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}\n.ll .ll-thumb{display:grid;place-items:center;flex:none;width:46px;height:46px;border-radius:8px;font-size:26px}\n.ll .ll-ln{flex:1;min-width:0}.ll .ll-ln span{display:block;color:var(--mut);font-size:12px}.ll .ll-lt{font-weight:700;white-space:nowrap}\n.ll .ll-sum{padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#f9fafb}\n.ll .ll-row{display:flex;justify-content:space-between;gap:10px;padding:3px 0}.ll .ll-row span:last-child{white-space:nowrap}\n.ll .ll-tot{margin-top:6px;padding-top:8px;border-top:1px solid var(--line);font-size:16px;font-weight:800}\n.ll .ll-wal{color:#7a2e0e}.ll .ll-free{color:var(--ok);font-weight:600}\n.ll .ll-sum .ll-btn{width:100%;margin:10px 0 6px}.ll .ll-sum a,.ll .ll-back{color:var(--mut);font-size:13px}\n.ll .ll-msg{margin:14px 0;padding:18px;border-radius:12px;text-align:center}\n.ll .ll-msg.ok{border:1px solid #abefc6;background:#ecfdf3}.ll .ll-msg.bad{border:1px solid #fecdca;background:#fef3f2}\n.ll .ll-icon{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:50%;color:#fff;font-size:24px;font-weight:800}\n.ll .ok .ll-icon{background:var(--ok)}.ll .bad .ll-icon{background:var(--bad)}\n.ll .ll-msg .ll-h{margin:8px 0 4px}.ll .ll-msg p{margin:4px 0;color:#475467}\n.ll .ll-rcpt{max-width:380px;margin:0 auto 14px;padding:10px 14px;border:1px dashed #d0d5dd;border-radius:10px;background:#fff}\n.ll .ll-code{max-width:380px;margin:0 auto;padding:12px 14px;border-radius:10px;background:var(--ink);color:#fff;text-align:center}\n.ll .ll-code span{display:block;color:#98a2b3;font-size:12px;text-transform:uppercase;letter-spacing:.06em}\n.ll .ll-code code{display:inline-block;margin-top:4px;padding:0;background:none;color:#ffd8a8;font:700 15px/1.4 ui-monospace,Menlo,Consolas,monospace;word-break:break-all}\n@container (max-width:470px){.ll .ll-search{display:none}.ll .ll-cart{grid-template-columns:minmax(0,1fr)}.ll .ll-bar{flex-direction:column;align-items:stretch}}\n</style>"
+     },
+     {
+      "path": "/order",
+      "method": "POST",
+      "when": {
+       "bodyParam": {
+        "qty_ps5": "3",
+        "qty_skibidi": "2",
+        "qty_tralalero": "2"
+       },
+       "bodyTotalAtMost": {
+        "price_ps5*qty_ps5+price_skibidi*qty_skibidi+price_tralalero*qty_tralalero": 25
+       }
+      },
+      "body": "<div class=\"ll\"><div class=\"ll-top\"><span class=\"ll-logo\">Loot<b>Lane</b></span><span class=\"ll-search\">Search consoles, toys, plushies&hellip;</span><span class=\"ll-wallet\">Wallet <b>$25.00</b></span></div><ol class=\"ll-steps\"><li class=\"on\">Shop</li><li class=\"on\">Cart</li><li class=\"on\">Done</li></ol><div class=\"ll-msg ok\"><span class=\"ll-icon\">&#10003;</span><h1 class=\"ll-h\">Order confirmed!</h1><p>Thanks for shopping at Loot Lane. Order <b>#LL-20417</b> is on its way.</p></div><div class=\"ll-rcpt\"><div class=\"ll-row\"><span>{form:qty_ps5} &times; PS5 Console</span><span>${total:price_ps5*qty_ps5}</span></div><div class=\"ll-row\"><span>{form:qty_skibidi} &times; Skibidi Toilet</span><span>${total:price_skibidi*qty_skibidi}</span></div><div class=\"ll-row\"><span>{form:qty_tralalero} &times; Tralalero Tralala</span><span>${total:price_tralalero*qty_tralalero}</span></div><div class=\"ll-row ll-tot\"><span>Paid from wallet</span><span>${total:price_ps5*qty_ps5+price_skibidi*qty_skibidi+price_tralalero*qty_tralalero}</span></div></div><div class=\"ll-code\"><span>Your reward code</span><code>{flag}</code></div></div>\n<style>\n.ll{--ink:#1d2433;--mut:#667085;--line:#e4e7ec;--brand:#e8590c;--ok:#12805c;--bad:#c4320a;container-type:inline-size;max-width:760px;margin:0 auto;font:14px/1.45 system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;color:var(--ink)}\n.ll *{box-sizing:border-box}\n.ll .ll-top{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}\n.ll .ll-logo{font-weight:800;font-size:19px;letter-spacing:-.02em;white-space:nowrap}.ll .ll-logo b{color:var(--brand)}\n.ll .ll-search{flex:1;min-width:0;padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:#f9fafb;color:#98a2b3;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n.ll .ll-wallet{white-space:nowrap;padding:5px 11px;border:1px solid #ffd8a8;border-radius:999px;background:#fff4e6;color:#7a2e0e;font-size:13px}\n.ll .ll-nav{display:flex;gap:16px;padding:7px 0;border-bottom:1px solid var(--line);color:var(--mut);font-size:13px;white-space:nowrap;overflow:hidden}.ll .ll-nav .ll-hot{color:var(--bad);font-weight:600}\n.ll .ll-note{margin:10px 0 12px;padding:9px 14px;border:1px solid #f5d76e;border-radius:10px;background:#fff9db;transform:rotate(-.4deg)}\n.ll .ll-note b{display:block;margin-bottom:4px}.ll .ll-note ul{display:flex;flex-wrap:wrap;gap:2px 16px;margin:0;padding:0;list-style:none;font-weight:600}.ll .ll-note li:before{content:\"\\2610\";margin-right:5px;color:#b08900}.ll .ll-note p{margin:4px 0 0;color:#7a5d00;font-size:13px}\n.ll .ll-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}\n.ll .ll-card{display:flex;flex-direction:column;padding:10px;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 1px 2px rgba(16,24,40,.06)}\n.ll .ll-pic{display:grid;place-items:center;height:72px;border-radius:9px;font-size:40px;line-height:1}\n.ll .ll-name{margin-top:8px;font-weight:700}.ll .ll-desc{flex:1;color:var(--mut);font-size:12px}\n.ll .ll-stars{color:#f59f00;font-size:12px;letter-spacing:1px}.ll .ll-stars span{color:var(--mut);letter-spacing:0}\n.ll .ll-price{margin:2px 0 8px;font-size:18px;font-weight:800}\n.ll .ll-qty{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--mut);font-size:13px}\n.ll .ll-qty input{width:64px;padding:5px 8px;border:1px solid #d0d5dd;border-radius:8px;background:#fff;color:var(--ink);font:inherit;text-align:center}\n.ll .ll-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}\n.ll .ll-fine{color:var(--mut);font-size:12px}\n.ll .ll-btn{padding:9px 18px;border:0;border-radius:999px;background:var(--brand);color:#fff;font:inherit;font-weight:700;white-space:nowrap;cursor:pointer}.ll .ll-btn:hover{background:#d9480f}\n.ll .ll-steps{display:flex;gap:6px;margin:12px 0 4px;padding:0;list-style:none;color:#98a2b3;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}\n.ll .ll-steps li+li:before{content:\"\\203A\";margin-right:6px}.ll .ll-steps .on{color:var(--brand)}\n.ll .ll-h{margin:4px 0 10px;color:var(--ink);font:800 22px/1.25 system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;letter-spacing:-.01em}\n.ll .ll-cart{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:14px;align-items:start}\n.ll .ll-line{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}\n.ll .ll-thumb{display:grid;place-items:center;flex:none;width:46px;height:46px;border-radius:8px;font-size:26px}\n.ll .ll-ln{flex:1;min-width:0}.ll .ll-ln span{display:block;color:var(--mut);font-size:12px}.ll .ll-lt{font-weight:700;white-space:nowrap}\n.ll .ll-sum{padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#f9fafb}\n.ll .ll-row{display:flex;justify-content:space-between;gap:10px;padding:3px 0}.ll .ll-row span:last-child{white-space:nowrap}\n.ll .ll-tot{margin-top:6px;padding-top:8px;border-top:1px solid var(--line);font-size:16px;font-weight:800}\n.ll .ll-wal{color:#7a2e0e}.ll .ll-free{color:var(--ok);font-weight:600}\n.ll .ll-sum .ll-btn{width:100%;margin:10px 0 6px}.ll .ll-sum a,.ll .ll-back{color:var(--mut);font-size:13px}\n.ll .ll-msg{margin:14px 0;padding:18px;border-radius:12px;text-align:center}\n.ll .ll-msg.ok{border:1px solid #abefc6;background:#ecfdf3}.ll .ll-msg.bad{border:1px solid #fecdca;background:#fef3f2}\n.ll .ll-icon{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:50%;color:#fff;font-size:24px;font-weight:800}\n.ll .ok .ll-icon{background:var(--ok)}.ll .bad .ll-icon{background:var(--bad)}\n.ll .ll-msg .ll-h{margin:8px 0 4px}.ll .ll-msg p{margin:4px 0;color:#475467}\n.ll .ll-rcpt{max-width:380px;margin:0 auto 14px;padding:10px 14px;border:1px dashed #d0d5dd;border-radius:10px;background:#fff}\n.ll .ll-code{max-width:380px;margin:0 auto;padding:12px 14px;border-radius:10px;background:var(--ink);color:#fff;text-align:center}\n.ll .ll-code span{display:block;color:#98a2b3;font-size:12px;text-transform:uppercase;letter-spacing:.06em}\n.ll .ll-code code{display:inline-block;margin-top:4px;padding:0;background:none;color:#ffd8a8;font:700 15px/1.4 ui-monospace,Menlo,Consolas,monospace;word-break:break-all}\n@container (max-width:470px){.ll .ll-search{display:none}.ll .ll-cart{grid-template-columns:minmax(0,1fr)}.ll .ll-bar{flex-direction:column;align-items:stretch}}\n</style>"
+     },
+     {
+      "path": "/order",
+      "method": "POST",
+      "when": {
+       "bodyParam": {
+        "qty_ps5": "3",
+        "qty_skibidi": "2",
+        "qty_tralalero": "2"
+       }
+      },
+      "status": 402,
+      "statusText": "Payment Required",
+      "body": "<div class=\"ll\"><div class=\"ll-top\"><span class=\"ll-logo\">Loot<b>Lane</b></span><span class=\"ll-search\">Search consoles, toys, plushies&hellip;</span><span class=\"ll-wallet\">Wallet <b>$25.00</b></span></div><ol class=\"ll-steps\"><li class=\"on\">Shop</li><li class=\"on\">Cart</li><li>Done</li></ol><div class=\"ll-msg bad\"><span class=\"ll-icon\">!</span><h1 class=\"ll-h\">Payment declined</h1><p>Your order total is <b>${total:price_ps5*qty_ps5+price_skibidi*qty_skibidi+price_tralalero*qty_tralalero}</b> but your wallet only holds <b>$25.00</b>.</p></div><div class=\"ll-rcpt\"><div class=\"ll-row\"><span>{form:qty_ps5} &times; PS5 Console</span><span>${total:price_ps5*qty_ps5}</span></div><div class=\"ll-row\"><span>{form:qty_skibidi} &times; Skibidi Toilet</span><span>${total:price_skibidi*qty_skibidi}</span></div><div class=\"ll-row\"><span>{form:qty_tralalero} &times; Tralalero Tralala</span><span>${total:price_tralalero*qty_tralalero}</span></div></div><p><a class=\"ll-back\" href=\"/\">&larr; back to the shop</a></p></div>\n<style>\n.ll{--ink:#1d2433;--mut:#667085;--line:#e4e7ec;--brand:#e8590c;--ok:#12805c;--bad:#c4320a;container-type:inline-size;max-width:760px;margin:0 auto;font:14px/1.45 system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;color:var(--ink)}\n.ll *{box-sizing:border-box}\n.ll .ll-top{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}\n.ll .ll-logo{font-weight:800;font-size:19px;letter-spacing:-.02em;white-space:nowrap}.ll .ll-logo b{color:var(--brand)}\n.ll .ll-search{flex:1;min-width:0;padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:#f9fafb;color:#98a2b3;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n.ll .ll-wallet{white-space:nowrap;padding:5px 11px;border:1px solid #ffd8a8;border-radius:999px;background:#fff4e6;color:#7a2e0e;font-size:13px}\n.ll .ll-nav{display:flex;gap:16px;padding:7px 0;border-bottom:1px solid var(--line);color:var(--mut);font-size:13px;white-space:nowrap;overflow:hidden}.ll .ll-nav .ll-hot{color:var(--bad);font-weight:600}\n.ll .ll-note{margin:10px 0 12px;padding:9px 14px;border:1px solid #f5d76e;border-radius:10px;background:#fff9db;transform:rotate(-.4deg)}\n.ll .ll-note b{display:block;margin-bottom:4px}.ll .ll-note ul{display:flex;flex-wrap:wrap;gap:2px 16px;margin:0;padding:0;list-style:none;font-weight:600}.ll .ll-note li:before{content:\"\\2610\";margin-right:5px;color:#b08900}.ll .ll-note p{margin:4px 0 0;color:#7a5d00;font-size:13px}\n.ll .ll-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}\n.ll .ll-card{display:flex;flex-direction:column;padding:10px;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 1px 2px rgba(16,24,40,.06)}\n.ll .ll-pic{display:grid;place-items:center;height:72px;border-radius:9px;font-size:40px;line-height:1}\n.ll .ll-name{margin-top:8px;font-weight:700}.ll .ll-desc{flex:1;color:var(--mut);font-size:12px}\n.ll .ll-stars{color:#f59f00;font-size:12px;letter-spacing:1px}.ll .ll-stars span{color:var(--mut);letter-spacing:0}\n.ll .ll-price{margin:2px 0 8px;font-size:18px;font-weight:800}\n.ll .ll-qty{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--mut);font-size:13px}\n.ll .ll-qty input{width:64px;padding:5px 8px;border:1px solid #d0d5dd;border-radius:8px;background:#fff;color:var(--ink);font:inherit;text-align:center}\n.ll .ll-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}\n.ll .ll-fine{color:var(--mut);font-size:12px}\n.ll .ll-btn{padding:9px 18px;border:0;border-radius:999px;background:var(--brand);color:#fff;font:inherit;font-weight:700;white-space:nowrap;cursor:pointer}.ll .ll-btn:hover{background:#d9480f}\n.ll .ll-steps{display:flex;gap:6px;margin:12px 0 4px;padding:0;list-style:none;color:#98a2b3;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}\n.ll .ll-steps li+li:before{content:\"\\203A\";margin-right:6px}.ll .ll-steps .on{color:var(--brand)}\n.ll .ll-h{margin:4px 0 10px;color:var(--ink);font:800 22px/1.25 system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;letter-spacing:-.01em}\n.ll .ll-cart{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:14px;align-items:start}\n.ll .ll-line{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}\n.ll .ll-thumb{display:grid;place-items:center;flex:none;width:46px;height:46px;border-radius:8px;font-size:26px}\n.ll .ll-ln{flex:1;min-width:0}.ll .ll-ln span{display:block;color:var(--mut);font-size:12px}.ll .ll-lt{font-weight:700;white-space:nowrap}\n.ll .ll-sum{padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#f9fafb}\n.ll .ll-row{display:flex;justify-content:space-between;gap:10px;padding:3px 0}.ll .ll-row span:last-child{white-space:nowrap}\n.ll .ll-tot{margin-top:6px;padding-top:8px;border-top:1px solid var(--line);font-size:16px;font-weight:800}\n.ll .ll-wal{color:#7a2e0e}.ll .ll-free{color:var(--ok);font-weight:600}\n.ll .ll-sum .ll-btn{width:100%;margin:10px 0 6px}.ll .ll-sum a,.ll .ll-back{color:var(--mut);font-size:13px}\n.ll .ll-msg{margin:14px 0;padding:18px;border-radius:12px;text-align:center}\n.ll .ll-msg.ok{border:1px solid #abefc6;background:#ecfdf3}.ll .ll-msg.bad{border:1px solid #fecdca;background:#fef3f2}\n.ll .ll-icon{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:50%;color:#fff;font-size:24px;font-weight:800}\n.ll .ok .ll-icon{background:var(--ok)}.ll .bad .ll-icon{background:var(--bad)}\n.ll .ll-msg .ll-h{margin:8px 0 4px}.ll .ll-msg p{margin:4px 0;color:#475467}\n.ll .ll-rcpt{max-width:380px;margin:0 auto 14px;padding:10px 14px;border:1px dashed #d0d5dd;border-radius:10px;background:#fff}\n.ll .ll-code{max-width:380px;margin:0 auto;padding:12px 14px;border-radius:10px;background:var(--ink);color:#fff;text-align:center}\n.ll .ll-code span{display:block;color:#98a2b3;font-size:12px;text-transform:uppercase;letter-spacing:.06em}\n.ll .ll-code code{display:inline-block;margin-top:4px;padding:0;background:none;color:#ffd8a8;font:700 15px/1.4 ui-monospace,Menlo,Consolas,monospace;word-break:break-all}\n@container (max-width:470px){.ll .ll-search{display:none}.ll .ll-cart{grid-template-columns:minmax(0,1fr)}.ll .ll-bar{flex-direction:column;align-items:stretch}}\n</style>"
+     },
+     {
+      "path": "/order",
+      "method": "POST",
+      "body": "<div class=\"ll\"><div class=\"ll-top\"><span class=\"ll-logo\">Loot<b>Lane</b></span><span class=\"ll-search\">Search consoles, toys, plushies&hellip;</span><span class=\"ll-wallet\">Wallet <b>$25.00</b></span></div><ol class=\"ll-steps\"><li class=\"on\">Shop</li><li class=\"on\">Cart</li><li>Done</li></ol><div class=\"ll-msg bad\"><span class=\"ll-icon\">?</span><h1 class=\"ll-h\">That is not your shopping list</h1><p>Your list says 3 &times; PS5 Console, 2 &times; Skibidi Toilet, 2 &times; Tralalero Tralala.</p><p>Your order had {form:qty_ps5} &times; PS5 Console, {form:qty_skibidi} &times; Skibidi Toilet, {form:qty_tralalero} &times; Tralalero Tralala.</p></div><p><a class=\"ll-back\" href=\"/\">&larr; back to the shop</a></p></div>\n<style>\n.ll{--ink:#1d2433;--mut:#667085;--line:#e4e7ec;--brand:#e8590c;--ok:#12805c;--bad:#c4320a;container-type:inline-size;max-width:760px;margin:0 auto;font:14px/1.45 system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;color:var(--ink)}\n.ll *{box-sizing:border-box}\n.ll .ll-top{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}\n.ll .ll-logo{font-weight:800;font-size:19px;letter-spacing:-.02em;white-space:nowrap}.ll .ll-logo b{color:var(--brand)}\n.ll .ll-search{flex:1;min-width:0;padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:#f9fafb;color:#98a2b3;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n.ll .ll-wallet{white-space:nowrap;padding:5px 11px;border:1px solid #ffd8a8;border-radius:999px;background:#fff4e6;color:#7a2e0e;font-size:13px}\n.ll .ll-nav{display:flex;gap:16px;padding:7px 0;border-bottom:1px solid var(--line);color:var(--mut);font-size:13px;white-space:nowrap;overflow:hidden}.ll .ll-nav .ll-hot{color:var(--bad);font-weight:600}\n.ll .ll-note{margin:10px 0 12px;padding:9px 14px;border:1px solid #f5d76e;border-radius:10px;background:#fff9db;transform:rotate(-.4deg)}\n.ll .ll-note b{display:block;margin-bottom:4px}.ll .ll-note ul{display:flex;flex-wrap:wrap;gap:2px 16px;margin:0;padding:0;list-style:none;font-weight:600}.ll .ll-note li:before{content:\"\\2610\";margin-right:5px;color:#b08900}.ll .ll-note p{margin:4px 0 0;color:#7a5d00;font-size:13px}\n.ll .ll-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}\n.ll .ll-card{display:flex;flex-direction:column;padding:10px;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 1px 2px rgba(16,24,40,.06)}\n.ll .ll-pic{display:grid;place-items:center;height:72px;border-radius:9px;font-size:40px;line-height:1}\n.ll .ll-name{margin-top:8px;font-weight:700}.ll .ll-desc{flex:1;color:var(--mut);font-size:12px}\n.ll .ll-stars{color:#f59f00;font-size:12px;letter-spacing:1px}.ll .ll-stars span{color:var(--mut);letter-spacing:0}\n.ll .ll-price{margin:2px 0 8px;font-size:18px;font-weight:800}\n.ll .ll-qty{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--mut);font-size:13px}\n.ll .ll-qty input{width:64px;padding:5px 8px;border:1px solid #d0d5dd;border-radius:8px;background:#fff;color:var(--ink);font:inherit;text-align:center}\n.ll .ll-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}\n.ll .ll-fine{color:var(--mut);font-size:12px}\n.ll .ll-btn{padding:9px 18px;border:0;border-radius:999px;background:var(--brand);color:#fff;font:inherit;font-weight:700;white-space:nowrap;cursor:pointer}.ll .ll-btn:hover{background:#d9480f}\n.ll .ll-steps{display:flex;gap:6px;margin:12px 0 4px;padding:0;list-style:none;color:#98a2b3;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}\n.ll .ll-steps li+li:before{content:\"\\203A\";margin-right:6px}.ll .ll-steps .on{color:var(--brand)}\n.ll .ll-h{margin:4px 0 10px;color:var(--ink);font:800 22px/1.25 system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;letter-spacing:-.01em}\n.ll .ll-cart{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:14px;align-items:start}\n.ll .ll-line{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}\n.ll .ll-thumb{display:grid;place-items:center;flex:none;width:46px;height:46px;border-radius:8px;font-size:26px}\n.ll .ll-ln{flex:1;min-width:0}.ll .ll-ln span{display:block;color:var(--mut);font-size:12px}.ll .ll-lt{font-weight:700;white-space:nowrap}\n.ll .ll-sum{padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#f9fafb}\n.ll .ll-row{display:flex;justify-content:space-between;gap:10px;padding:3px 0}.ll .ll-row span:last-child{white-space:nowrap}\n.ll .ll-tot{margin-top:6px;padding-top:8px;border-top:1px solid var(--line);font-size:16px;font-weight:800}\n.ll .ll-wal{color:#7a2e0e}.ll .ll-free{color:var(--ok);font-weight:600}\n.ll .ll-sum .ll-btn{width:100%;margin:10px 0 6px}.ll .ll-sum a,.ll .ll-back{color:var(--mut);font-size:13px}\n.ll .ll-msg{margin:14px 0;padding:18px;border-radius:12px;text-align:center}\n.ll .ll-msg.ok{border:1px solid #abefc6;background:#ecfdf3}.ll .ll-msg.bad{border:1px solid #fecdca;background:#fef3f2}\n.ll .ll-icon{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:50%;color:#fff;font-size:24px;font-weight:800}\n.ll .ok .ll-icon{background:var(--ok)}.ll .bad .ll-icon{background:var(--bad)}\n.ll .ll-msg .ll-h{margin:8px 0 4px}.ll .ll-msg p{margin:4px 0;color:#475467}\n.ll .ll-rcpt{max-width:380px;margin:0 auto 14px;padding:10px 14px;border:1px dashed #d0d5dd;border-radius:10px;background:#fff}\n.ll .ll-code{max-width:380px;margin:0 auto;padding:12px 14px;border-radius:10px;background:var(--ink);color:#fff;text-align:center}\n.ll .ll-code span{display:block;color:#98a2b3;font-size:12px;text-transform:uppercase;letter-spacing:.06em}\n.ll .ll-code code{display:inline-block;margin-top:4px;padding:0;background:none;color:#ffd8a8;font:700 15px/1.4 ui-monospace,Menlo,Consolas,monospace;word-break:break-all}\n@container (max-width:470px){.ll .ll-search{display:none}.ll .ll-cart{grid-template-columns:minmax(0,1fr)}.ll .ll-bar{flex-direction:column;align-items:stretch}}\n</style>"
+     },
+     {
+      "path": "/cart",
+      "method": "GET",
+      "body": "<div class=\"ll\"><div class=\"ll-top\"><span class=\"ll-logo\">Loot<b>Lane</b></span><span class=\"ll-search\">Search consoles, toys, plushies&hellip;</span><span class=\"ll-wallet\">Wallet <b>$25.00</b></span></div><ol class=\"ll-steps\"><li class=\"on\">Shop</li><li>Cart</li><li>Done</li></ol><div class=\"ll-msg\"><h1 class=\"ll-h\">Your cart is empty</h1><p>Pick something from the shelves first.</p><p><a class=\"ll-back\" href=\"/\">&larr; back to the shop</a></p></div></div>\n<style>\n.ll{--ink:#1d2433;--mut:#667085;--line:#e4e7ec;--brand:#e8590c;--ok:#12805c;--bad:#c4320a;container-type:inline-size;max-width:760px;margin:0 auto;font:14px/1.45 system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;color:var(--ink)}\n.ll *{box-sizing:border-box}\n.ll .ll-top{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}\n.ll .ll-logo{font-weight:800;font-size:19px;letter-spacing:-.02em;white-space:nowrap}.ll .ll-logo b{color:var(--brand)}\n.ll .ll-search{flex:1;min-width:0;padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:#f9fafb;color:#98a2b3;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n.ll .ll-wallet{white-space:nowrap;padding:5px 11px;border:1px solid #ffd8a8;border-radius:999px;background:#fff4e6;color:#7a2e0e;font-size:13px}\n.ll .ll-nav{display:flex;gap:16px;padding:7px 0;border-bottom:1px solid var(--line);color:var(--mut);font-size:13px;white-space:nowrap;overflow:hidden}.ll .ll-nav .ll-hot{color:var(--bad);font-weight:600}\n.ll .ll-note{margin:10px 0 12px;padding:9px 14px;border:1px solid #f5d76e;border-radius:10px;background:#fff9db;transform:rotate(-.4deg)}\n.ll .ll-note b{display:block;margin-bottom:4px}.ll .ll-note ul{display:flex;flex-wrap:wrap;gap:2px 16px;margin:0;padding:0;list-style:none;font-weight:600}.ll .ll-note li:before{content:\"\\2610\";margin-right:5px;color:#b08900}.ll .ll-note p{margin:4px 0 0;color:#7a5d00;font-size:13px}\n.ll .ll-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}\n.ll .ll-card{display:flex;flex-direction:column;padding:10px;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 1px 2px rgba(16,24,40,.06)}\n.ll .ll-pic{display:grid;place-items:center;height:72px;border-radius:9px;font-size:40px;line-height:1}\n.ll .ll-name{margin-top:8px;font-weight:700}.ll .ll-desc{flex:1;color:var(--mut);font-size:12px}\n.ll .ll-stars{color:#f59f00;font-size:12px;letter-spacing:1px}.ll .ll-stars span{color:var(--mut);letter-spacing:0}\n.ll .ll-price{margin:2px 0 8px;font-size:18px;font-weight:800}\n.ll .ll-qty{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--mut);font-size:13px}\n.ll .ll-qty input{width:64px;padding:5px 8px;border:1px solid #d0d5dd;border-radius:8px;background:#fff;color:var(--ink);font:inherit;text-align:center}\n.ll .ll-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}\n.ll .ll-fine{color:var(--mut);font-size:12px}\n.ll .ll-btn{padding:9px 18px;border:0;border-radius:999px;background:var(--brand);color:#fff;font:inherit;font-weight:700;white-space:nowrap;cursor:pointer}.ll .ll-btn:hover{background:#d9480f}\n.ll .ll-steps{display:flex;gap:6px;margin:12px 0 4px;padding:0;list-style:none;color:#98a2b3;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}\n.ll .ll-steps li+li:before{content:\"\\203A\";margin-right:6px}.ll .ll-steps .on{color:var(--brand)}\n.ll .ll-h{margin:4px 0 10px;color:var(--ink);font:800 22px/1.25 system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;letter-spacing:-.01em}\n.ll .ll-cart{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:14px;align-items:start}\n.ll .ll-line{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}\n.ll .ll-thumb{display:grid;place-items:center;flex:none;width:46px;height:46px;border-radius:8px;font-size:26px}\n.ll .ll-ln{flex:1;min-width:0}.ll .ll-ln span{display:block;color:var(--mut);font-size:12px}.ll .ll-lt{font-weight:700;white-space:nowrap}\n.ll .ll-sum{padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#f9fafb}\n.ll .ll-row{display:flex;justify-content:space-between;gap:10px;padding:3px 0}.ll .ll-row span:last-child{white-space:nowrap}\n.ll .ll-tot{margin-top:6px;padding-top:8px;border-top:1px solid var(--line);font-size:16px;font-weight:800}\n.ll .ll-wal{color:#7a2e0e}.ll .ll-free{color:var(--ok);font-weight:600}\n.ll .ll-sum .ll-btn{width:100%;margin:10px 0 6px}.ll .ll-sum a,.ll .ll-back{color:var(--mut);font-size:13px}\n.ll .ll-msg{margin:14px 0;padding:18px;border-radius:12px;text-align:center}\n.ll .ll-msg.ok{border:1px solid #abefc6;background:#ecfdf3}.ll .ll-msg.bad{border:1px solid #fecdca;background:#fef3f2}\n.ll .ll-icon{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:50%;color:#fff;font-size:24px;font-weight:800}\n.ll .ok .ll-icon{background:var(--ok)}.ll .bad .ll-icon{background:var(--bad)}\n.ll .ll-msg .ll-h{margin:8px 0 4px}.ll .ll-msg p{margin:4px 0;color:#475467}\n.ll .ll-rcpt{max-width:380px;margin:0 auto 14px;padding:10px 14px;border:1px dashed #d0d5dd;border-radius:10px;background:#fff}\n.ll .ll-code{max-width:380px;margin:0 auto;padding:12px 14px;border-radius:10px;background:var(--ink);color:#fff;text-align:center}\n.ll .ll-code span{display:block;color:#98a2b3;font-size:12px;text-transform:uppercase;letter-spacing:.06em}\n.ll .ll-code code{display:inline-block;margin-top:4px;padding:0;background:none;color:#ffd8a8;font:700 15px/1.4 ui-monospace,Menlo,Consolas,monospace;word-break:break-all}\n@container (max-width:470px){.ll .ll-search{display:none}.ll .ll-cart{grid-template-columns:minmax(0,1fr)}.ll .ll-bar{flex-direction:column;align-items:stretch}}\n</style>"
+     },
+     {
+      "path": "/order",
+      "method": "GET",
+      "body": "<div class=\"ll\"><div class=\"ll-top\"><span class=\"ll-logo\">Loot<b>Lane</b></span><span class=\"ll-search\">Search consoles, toys, plushies&hellip;</span><span class=\"ll-wallet\">Wallet <b>$25.00</b></span></div><ol class=\"ll-steps\"><li class=\"on\">Shop</li><li>Cart</li><li>Done</li></ol><div class=\"ll-msg\"><h1 class=\"ll-h\">Your cart is empty</h1><p>Pick something from the shelves first.</p><p><a class=\"ll-back\" href=\"/\">&larr; back to the shop</a></p></div></div>\n<style>\n.ll{--ink:#1d2433;--mut:#667085;--line:#e4e7ec;--brand:#e8590c;--ok:#12805c;--bad:#c4320a;container-type:inline-size;max-width:760px;margin:0 auto;font:14px/1.45 system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;color:var(--ink)}\n.ll *{box-sizing:border-box}\n.ll .ll-top{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}\n.ll .ll-logo{font-weight:800;font-size:19px;letter-spacing:-.02em;white-space:nowrap}.ll .ll-logo b{color:var(--brand)}\n.ll .ll-search{flex:1;min-width:0;padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:#f9fafb;color:#98a2b3;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n.ll .ll-wallet{white-space:nowrap;padding:5px 11px;border:1px solid #ffd8a8;border-radius:999px;background:#fff4e6;color:#7a2e0e;font-size:13px}\n.ll .ll-nav{display:flex;gap:16px;padding:7px 0;border-bottom:1px solid var(--line);color:var(--mut);font-size:13px;white-space:nowrap;overflow:hidden}.ll .ll-nav .ll-hot{color:var(--bad);font-weight:600}\n.ll .ll-note{margin:10px 0 12px;padding:9px 14px;border:1px solid #f5d76e;border-radius:10px;background:#fff9db;transform:rotate(-.4deg)}\n.ll .ll-note b{display:block;margin-bottom:4px}.ll .ll-note ul{display:flex;flex-wrap:wrap;gap:2px 16px;margin:0;padding:0;list-style:none;font-weight:600}.ll .ll-note li:before{content:\"\\2610\";margin-right:5px;color:#b08900}.ll .ll-note p{margin:4px 0 0;color:#7a5d00;font-size:13px}\n.ll .ll-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}\n.ll .ll-card{display:flex;flex-direction:column;padding:10px;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 1px 2px rgba(16,24,40,.06)}\n.ll .ll-pic{display:grid;place-items:center;height:72px;border-radius:9px;font-size:40px;line-height:1}\n.ll .ll-name{margin-top:8px;font-weight:700}.ll .ll-desc{flex:1;color:var(--mut);font-size:12px}\n.ll .ll-stars{color:#f59f00;font-size:12px;letter-spacing:1px}.ll .ll-stars span{color:var(--mut);letter-spacing:0}\n.ll .ll-price{margin:2px 0 8px;font-size:18px;font-weight:800}\n.ll .ll-qty{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--mut);font-size:13px}\n.ll .ll-qty input{width:64px;padding:5px 8px;border:1px solid #d0d5dd;border-radius:8px;background:#fff;color:var(--ink);font:inherit;text-align:center}\n.ll .ll-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}\n.ll .ll-fine{color:var(--mut);font-size:12px}\n.ll .ll-btn{padding:9px 18px;border:0;border-radius:999px;background:var(--brand);color:#fff;font:inherit;font-weight:700;white-space:nowrap;cursor:pointer}.ll .ll-btn:hover{background:#d9480f}\n.ll .ll-steps{display:flex;gap:6px;margin:12px 0 4px;padding:0;list-style:none;color:#98a2b3;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}\n.ll .ll-steps li+li:before{content:\"\\203A\";margin-right:6px}.ll .ll-steps .on{color:var(--brand)}\n.ll .ll-h{margin:4px 0 10px;color:var(--ink);font:800 22px/1.25 system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;letter-spacing:-.01em}\n.ll .ll-cart{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:14px;align-items:start}\n.ll .ll-line{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}\n.ll .ll-thumb{display:grid;place-items:center;flex:none;width:46px;height:46px;border-radius:8px;font-size:26px}\n.ll .ll-ln{flex:1;min-width:0}.ll .ll-ln span{display:block;color:var(--mut);font-size:12px}.ll .ll-lt{font-weight:700;white-space:nowrap}\n.ll .ll-sum{padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#f9fafb}\n.ll .ll-row{display:flex;justify-content:space-between;gap:10px;padding:3px 0}.ll .ll-row span:last-child{white-space:nowrap}\n.ll .ll-tot{margin-top:6px;padding-top:8px;border-top:1px solid var(--line);font-size:16px;font-weight:800}\n.ll .ll-wal{color:#7a2e0e}.ll .ll-free{color:var(--ok);font-weight:600}\n.ll .ll-sum .ll-btn{width:100%;margin:10px 0 6px}.ll .ll-sum a,.ll .ll-back{color:var(--mut);font-size:13px}\n.ll .ll-msg{margin:14px 0;padding:18px;border-radius:12px;text-align:center}\n.ll .ll-msg.ok{border:1px solid #abefc6;background:#ecfdf3}.ll .ll-msg.bad{border:1px solid #fecdca;background:#fef3f2}\n.ll .ll-icon{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:50%;color:#fff;font-size:24px;font-weight:800}\n.ll .ok .ll-icon{background:var(--ok)}.ll .bad .ll-icon{background:var(--bad)}\n.ll .ll-msg .ll-h{margin:8px 0 4px}.ll .ll-msg p{margin:4px 0;color:#475467}\n.ll .ll-rcpt{max-width:380px;margin:0 auto 14px;padding:10px 14px;border:1px dashed #d0d5dd;border-radius:10px;background:#fff}\n.ll .ll-code{max-width:380px;margin:0 auto;padding:12px 14px;border-radius:10px;background:var(--ink);color:#fff;text-align:center}\n.ll .ll-code span{display:block;color:#98a2b3;font-size:12px;text-transform:uppercase;letter-spacing:.06em}\n.ll .ll-code code{display:inline-block;margin-top:4px;padding:0;background:none;color:#ffd8a8;font:700 15px/1.4 ui-monospace,Menlo,Consolas,monospace;word-break:break-all}\n@container (max-width:470px){.ll .ll-search{display:none}.ll .ll-cart{grid-template-columns:minmax(0,1fr)}.ll .ll-bar{flex-direction:column;align-items:stretch}}\n</style>"
+     }
+    ]
+   },
+   "flagHash": "6590d35962a3054be2a329d110b95483c48189d5801b594d886b7b57ca628d46",
+   "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "members-only",
+   "group": "wk8",
+   "name": "Members Only",
+   "category": "Web Exploitation",
+   "difficulty": "medium",
+   "idea": "the cookie your browser sends on every request is yours to change",
+   "description": "A members club. You are let in as a guest. The lounge is for members only. See if the inspector can get you in.",
+   "hints": [
+    "Click the first row in the Network panel and read Response Headers in its Headers tab: the server set a cookie that says role=guest. Your browser now sends that cookie on every request.",
+    "Click the members lounge link, then click the new lounge row, press Edit and Resend, change the Cookie line in the Headers box so role is admin, then press Send."
+   ],
+   "proxy": {
+    "host": "club.flippedbyneel.com",
+    "flag": "flipped{c00k13s_s4y_wh0_y0u_4r3_6694}",
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "method": "GET",
+      "setCookie": {
+       "role": "guest"
+      },
+      "body": "<h1>The Midnight Club</h1><p>Welcome. You are browsing as <b>guest</b>.</p><div class=\"card\">The server just handed your browser a cookie. Open this request in the inspector and read the Response headers to see it.</div><p><a href=\"/lounge\">members lounge &rarr;</a></p>"
+     },
+     {
+      "path": "/lounge",
+      "method": "GET",
+      "when": {
+       "cookie": {
+        "role": "admin"
+       }
+      },
+      "body": "<h1>Members Lounge</h1><p>Welcome back, admin. Make yourself comfortable.</p><div class=\"card\">Your members-only code: {flag}</div><p class=\"mut\">Tonight: La Vaca Saturno Saturnita on the decks. Dress code: sigma. Aura in this room: maximum.</p>"
+     },
+     {
+      "path": "/lounge",
+      "method": "GET",
+      "body": "<h1>Members Lounge</h1><p>Sorry, <b>{cookie:role}</b> accounts are not allowed in here. Members only.</p><p><a href=\"/\">back</a></p>"
+     }
+    ]
+   },
+   "flagHash": "4b0775a8dcd3c4ff3d234bb1354bfedd3036168ded3fab63386649fe60dcd77a",
+   "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "fortune-cookies",
+   "group": "wk8",
+   "name": "Fortune Cookies",
+   "category": "Web Exploitation",
+   "difficulty": "medium",
+   "idea": "a cookie can hold a number you step through; one value is special",
+   "description": "A fortune cookie stand. Every cookie is numbered and your browser remembers which one you are on. There are 7 fortunes.",
+   "hints": [
+    "Click the first row and read Response Headers in its Headers tab: the server set a cookie called fortune. Then click the open your cookie link, click the new crack row, press Edit and Resend, and find that cookie in the Headers box.",
+    "Change the number in the fortune cookie and press Send. There are 7 fortunes, numbered 0 to 6. One of them is special."
+   ],
+   "proxy": {
+    "host": "fortune.flippedbyneel.com",
+    "flag": "flipped{c00k13s_4r3_numb3rs_1baf}",
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "method": "GET",
+      "setCookie": {
+       "fortune": "0"
+      },
+      "body": "<h1>Fortune Cookie Stand</h1><p>We have <b>7</b> fortunes, numbered 0 to 6. Your browser is holding fortune number <b>0</b>.</p><div class=\"card\">A cookie is a little note the server asked your browser to keep. Change the number on the note and ask again.</div><p><a href=\"/crack\">open your cookie &rarr;</a></p>"
+     },
+     {
+      "path": "/crack",
+      "method": "GET",
+      "when": {
+       "cookie": {
+        "fortune": "4"
+       }
+      },
+      "body": "<h1>Fortune 4</h1><div class=\"card\">Your lucky string: <code>{flag}</code></div>"
+     },
+     {
+      "path": "/crack",
+      "method": "GET",
+      "when": {
+       "cookie": {
+        "fortune": "0"
+       }
+      },
+      "body": "<h1>Fortune 0</h1><p>Your aura goes up by +1000 today. Spend it wisely. (Fortunes go from 0 to 6. This is not the special one.)</p><p><a href=\"/\">back</a></p>"
+     },
+     {
+      "path": "/crack",
+      "method": "GET",
+      "when": {
+       "cookie": {
+        "fortune": "1"
+       }
+      },
+      "body": "<h1>Fortune 1</h1><p>Your rizz is strong this week. Use it to ask for help with homework. (Fortunes go from 0 to 6. This is not the special one.)</p><p><a href=\"/\">back</a></p>"
+     },
+     {
+      "path": "/crack",
+      "method": "GET",
+      "when": {
+       "cookie": {
+        "fortune": "2"
+       }
+      },
+      "body": "<h1>Fortune 2</h1><p>A true sigma always pushes in their chair. (Fortunes go from 0 to 6. This is not the special one.)</p><p><a href=\"/\">back</a></p>"
+     },
+     {
+      "path": "/crack",
+      "method": "GET",
+      "when": {
+       "cookie": {
+        "fortune": "3"
+       }
+      },
+      "body": "<h1>Fortune 3</h1><p>Beware the fanum tax: a friend will take one fry. Let them. (Fortunes go from 0 to 6. This is not the special one.)</p><p><a href=\"/\">back</a></p>"
+     },
+     {
+      "path": "/crack",
+      "method": "GET",
+      "when": {
+       "cookie": {
+        "fortune": "5"
+       }
+      },
+      "body": "<h1>Fortune 5</h1><p>Only in Ohio does a fortune cookie come with two fortunes. This one has one. (Fortunes go from 0 to 6. This is not the special one.)</p><p><a href=\"/\">back</a></p>"
+     },
+     {
+      "path": "/crack",
+      "method": "GET",
+      "when": {
+       "cookie": {
+        "fortune": "6"
+       }
+      },
+      "body": "<h1>Fortune 6</h1><p>Someone near you is about to say 'six seven'. It was you, wasn't it? (Fortunes go from 0 to 6. This is not the special one.)</p><p><a href=\"/\">back</a></p>"
+     },
+     {
+      "path": "/crack",
+      "method": "GET",
+      "when": {
+       "cookie": {
+        "fortune": "7"
+       }
+      },
+      "body": "<h1>Fortune 7</h1><p>There is no fortune 7. We know why you tried it. (Fortunes go from 0 to 6. This is not the special one.)</p><p><a href=\"/\">back</a></p>"
+     },
+     {
+      "path": "/crack",
+      "method": "GET",
+      "body": "<h1>Fortune {cookie:fortune}</h1><p>You will meet a tall stranger. (Fortunes go from 0 to 6. This is not the special one.)</p><p><a href=\"/\">back</a></p>"
+     }
+    ]
+   },
+   "flagHash": "93bc2e0514a3a63f5221e60984e9cb4641763a5c4d069681d4dc439e38607b0d",
+   "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "staff-door",
+   "group": "wk8",
+   "name": "Staff Door",
+   "category": "Web Exploitation",
+   "difficulty": "medium",
+   "idea": "your browser also sends headers, and you can set those to anything",
+   "description": "A company webmail. The admin inbox only opens for the company's own browser. You are not using the company's browser... or are you?",
+   "hints": [
+    "Click the first row in the Network panel and open its Response tab. The developers left a note behind in there, in an HTML comment the browser never draws: <!-- like this -->.",
+    "Click the admin inbox link, then click the inbox row, press Edit and Resend, and change the User-Agent line in the Headers box to the value from that note, then press Send."
+   ],
+   "proxy": {
+    "host": "mail.flippedbyneel.com",
+    "flag": "flipped{y0u_c0ntr0l_th3_h34d3rs_99e3}",
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "method": "GET",
+      "body": "<h1>Flipped Webmail</h1><p>Welcome to the company webmail. The admin inbox only opens for the company's own browser.</p><p><a href=\"/inbox\">admin inbox &rarr;</a></p><p class=\"mut\">Office status: the 3rd-floor printer (somebody renamed it Skibidi Printer 3000) is out of paper.</p>\n<!-- internal note: the inbox checks that your User-Agent header is exactly FlippedAdmin/1.0. Nobody outside the company has that, so we're safe. -->"
+     },
+     {
+      "path": "/inbox",
+      "method": "GET",
+      "when": {
+       "header": {
+        "User-Agent": "FlippedAdmin/1.0"
+       }
+      },
+      "body": "<h1>Admin Inbox</h1><div class=\"card\"><b>1 new message</b><br>Subject: your flag<br>Body: {flag}</div><p class=\"mut\">Older: \"Please stop saying six seven in every meeting\" (from HR) &middot; \"Your aura review is due Friday\" (from your manager)</p>"
+     },
+     {
+      "path": "/inbox",
+      "method": "GET",
+      "body": "<h1>Access denied</h1><p>This inbox only opens for the company's own browser.</p><p>Your browser said it was <code>{header:User-Agent}</code>.</p><p><a href=\"/\">back</a></p>"
+     }
+    ]
+   },
+   "flagHash": "48e1f0ed7acb012bd1b342f2fe3ad5dfb61348aedbd25a80ace24c5351615e05",
+   "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "knock-differently",
+   "group": "wk8",
+   "name": "Knock Differently",
+   "category": "Web Exploitation",
+   "difficulty": "medium",
+   "idea": "HTTP methods: the server refuses one method with a status and an Allow header naming the right one",
+   "description": "A club with a very particular doorman. Ask the wrong way and he tells you exactly how to ask.",
+   "hints": [
+    "Click the vault link, then click the vault row (it is red) and read its Headers tab: the Status Code and an Allow header.",
+    "The Allow header names the method the doorman accepts. Press Edit and Resend, change the method dropdown to that method and press Send, then read Response Headers on the new row."
+   ],
+   "proxy": {
+    "host": "knock.flippedbyneel.com",
+    "flag": "flipped{kn0ck_w1th_th3_r1ght_m3th0d_24c5}",
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "method": "GET",
+      "body": "<h1>The Quiet Door</h1><p class=\"mut\">Doorman on duty tonight: Tung Tung Tung Sahur.</p><p>The vault opens for only one kind of knock. Ask the wrong way and the doorman will tell you the right one.</p><p><a href=\"/vault\">knock on the vault &rarr;</a></p>"
+     },
+     {
+      "path": "/vault",
+      "method": "GET",
+      "status": 405,
+      "statusText": "Method Not Allowed",
+      "headers": {
+       "Allow": "HEAD"
+      },
+      "body": "<h1>Wrong knock</h1><p>That is not how we knock here. Read the status code and the <code>Allow</code> header in this response.</p>"
+     },
+     {
+      "path": "/vault",
+      "method": "HEAD",
+      "headers": {
+       "X-Vault-Code": "{flag}",
+       "X-Aura": "+1000 for knocking the right way"
+      },
+      "body": "<h1>The door opens</h1><p>You knocked the right way. Your code is in the response headers.</p>"
+     }
+    ]
+   },
+   "flagHash": "c80de5495c6c90d27adb5d1c7c313807a5ba6e4a87d18baa1e2a7f6bdcbcb0fe",
+   "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "wrong-number",
+   "group": "wk8",
+   "name": "Wrong Number",
+   "category": "Web Exploitation",
+   "difficulty": "easy",
+   "idea": "changing an id in the URL shows a different record; the server never checks who is asking",
+   "description": "A shop keeps every receipt online. Yours is number 1001. The manager's is not your business, but the server will hand it to anyone.",
+   "hints": [
+    "Open your receipt with the link, then click the receipt row in the Network panel and look at the Request URL: it ends in id=1001.",
+    "Press Edit and Resend, change the id in the URL to the manager's number (it was on the home page) and press Send. The server never checks whose receipt you asked for."
+   ],
+   "proxy": {
+    "host": "records.flippedbyneel.com",
+    "flag": "flipped{ch4ng3_th3_numb3r_96a7}",
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "method": "GET",
+      "body": "<h1>Receipt Vault</h1><p>Your order is receipt <b>1001</b>.</p><div class=\"card\">Staff receipts are numbered from 9000 up. The manager keeps receipt <b>9001</b>.</div><p><a href=\"/receipt?id=1001\">open your receipt &rarr;</a></p>"
+     },
+     {
+      "path": "/receipt",
+      "method": "GET",
+      "when": {
+       "query": {
+        "id": "9001"
+       }
+      },
+      "body": "<h1>Receipt 9001</h1><p>The manager's copy.</p><div class=\"card\">Item: one secret recipe. Note: <code>{flag}</code></div>"
+     },
+     {
+      "path": "/receipt",
+      "method": "GET",
+      "when": {
+       "query": {
+        "id": "1001"
+       }
+      },
+      "body": "<h1>Receipt 1001</h1><p>Thank you for shopping with us. Nothing unusual on this receipt.</p><div class=\"card\">Customer: you<br>1 &times; slushie, 1 &times; large fries<br>Fanum tax: 1 fry (a friend took it)</div><p><a href=\"/\">back</a></p>"
+     },
+     {
+      "path": "/receipt",
+      "method": "GET",
+      "when": {
+       "query": {
+        "id": "1002"
+       }
+      },
+      "body": "<h1>Receipt 1002</h1><p>Thank you for shopping with us. Nothing unusual on this receipt.</p><div class=\"card\">Customer: Bombardiro Crocodilo<br>6 &times; sunscreen, 7 &times; aviator goggles</div><p><a href=\"/\">back</a></p>"
+     },
+     {
+      "path": "/receipt",
+      "method": "GET",
+      "body": "<h1>Receipt {query:id}</h1><p>Thank you for shopping with us. Nothing unusual on this receipt.</p><p><a href=\"/\">back</a></p>"
+     }
+    ]
+   },
+   "flagHash": "bf774b33013f0a7f14cff36002e2b86f1e55fc26fa69ee2a330a3043c1e7c6f6",
+   "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "back-office",
+   "group": "wk8",
+   "name": "Back Office",
+   "category": "Web Exploitation",
+   "difficulty": "hard",
+   "idea": "a page viewer loads files by name from one folder; ../ climbs out to a file it never meant to serve",
+   "description": "A café lets you read its pages by name. The pages live in the public folder. The kitchen keeps something better upstairs.",
+   "hints": [
+    "Open the menu link, then click the view row in the Network panel. Its URL asks for a page by name (Edit and Resend lets you change it). Ask for a page that is not there and read the error: it shows the exact path the server looked in.",
+    "The error shows you are inside /public. Use ../ (the same as cd .. in the terminal) to climb out of /public, then go into the secret folder. The file is called flag.txt."
+   ],
+   "proxy": {
+    "host": "cafe.flippedbyneel.com",
+    "flag": "flipped{cl1mb_0ut_w1th_d0t_d0t_08d2}",
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "method": "GET",
+      "body": "<h1>Café Back Office</h1><p>Read one of our pages by name. They all live in the <code>public</code> folder.</p><p><a href=\"/view?page=menu.txt\">open the menu &rarr;</a></p><div class=\"card\">Staff notes and the recipe book stay out of the public folder, so nobody can read them.</div>"
+     },
+     {
+      "path": "/view",
+      "method": "GET",
+      "serve": {
+       "param": "page",
+       "dir": "/public",
+       "files": {
+        "/public/menu.txt": "Today: soup, sandwich, cake. Ask about the secret recipe at the counter.\nDrinks: Ballerina Cappuccina cappuccino, Brr Brr Patapim iced tea.\nMore treats: specials.txt",
+        "/public/hours.txt": "Open 8 to 4, Monday to Friday. Lirili Larila keeps the clock.",
+        "/public/specials.txt": "Chimpanzini Bananini banana bread, 67 cents a slice.\nTralalero Tralala tuna melt (comes with sneakers).",
+        "/secret/flag.txt": "flipped{cl1mb_0ut_w1th_d0t_d0t_08d2}"
+       },
+       "missing": "<h1>Page not found</h1><p>We looked for <code>{file:path}</code> and there is nothing there.</p><p class=\"mut\">Not even Tung Tung Tung Sahur could find it, and he checked twice.</p><p><a href=\"/\">back</a></p>"
+      },
+      "body": "<h1>Page: {file:path}</h1><pre>{file:body}</pre>"
+     }
+    ]
+   },
+   "flagHash": "11c7e60ecf9fd72712f8d616ef16a5e7fb40a4ff4ab19191fda2add1ff35b991",
+   "flagFormat": "flipped{...}"
+  }
+ ]
+}
