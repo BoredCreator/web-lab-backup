@@ -585,6 +585,176 @@
    },
    "flagHash": "11c7e60ecf9fd72712f8d616ef16a5e7fb40a4ff4ab19191fda2add1ff35b991",
    "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "aura-vault",
+   "group": "wk8",
+   "name": "The Aura Vault",
+   "category": "Web Exploitation",
+   "difficulty": "hard",
+   "point": "final boss",
+   "idea": "the final boss: a chain of every week-8 move (comment, URL, skipped redirect, cookie, method, header, id); each reply hands over the next clue",
+   "description": "Brainrot HQ keeps its Aura Vault behind six doors. Each door's reply tells you how to open the next one, if you read the reply the browser does not show you.",
+   "hints": [
+    "Every reply in this mission hands you the next clue, usually somewhere the browser does not draw. Start with the first row's Response tab, then type the address it mentions into the address bar (or Edit and Resend with a new URL).",
+    "The entrance answers with a 302. Click that row: its Response tab has the doorman's note and its Headers tab shows the Set-Cookie he gave you. At the vault, every refusal says what to change next: first your cookie, then the method (read the Allow header), then what your browser calls itself (read the Response Headers).",
+    "The vault opens for the cookie rank=sigma, the method POST, and the User-Agent the vault's Response Headers name, all in one Edit and Resend. Then open your locker, click the locker row and check its Payload tab: change the id in the URL to the keeper's locker number from the list on your locker door."
+   ],
+   "proxy": {
+    "host": "aura.flippedbyneel.com",
+    "flag": "flipped{f1n4l_b0ss_4ur4_unl0ck3d_4f27}",
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "method": "GET",
+      "headers": {
+       "X-Aura-Level": "over 9000 (unverified)"
+      },
+      "body": "<h1>Brainrot HQ</h1><p>Home of the <b>Aura Vault</b>, where the keeper stores the rarest aura on the internet.</p><div class=\"card\">The vault has no front door on this page. Only people who read what the server <i>actually</i> sent ever find the way in.</div><p><a href=\"/leaderboard\">aura leaderboard &rarr;</a></p>\n<!-- keeper's note to self: the secret entrance is /enter . Do NOT put a link to it on this page. -->"
+     },
+     {
+      "path": "/leaderboard",
+      "method": "GET",
+      "body": "<h1>Aura leaderboard</h1><ol><li>Tung Tung Tung Sahur, the Vault Keeper: +6,700 aura</li><li>Ballerina Cappuccina: +4,100 aura</li><li>Bombardiro Crocodilo: +3,900 aura</li><li>You: 0 aura (for now)</li></ol><p class=\"mut\">Nothing hidden here. The way into the vault is in the home page's own source.</p><p><a href=\"/\">back home</a></p>"
+     },
+     {
+      "path": "/enter",
+      "method": "GET",
+      "redirect": "/lobby",
+      "setCookie": {
+       "rank": "npc"
+      },
+      "redirectBody": "<!doctype html><title>Moved</title><h1>Hold up</h1><p>Doorman Tung Tung Tung Sahur stamps your hand: <b>rank npc</b>, like everyone who walks in. Your browser carries that rank on every request now (look at this reply's Set-Cookie header).</p><p>The vault is at <code>/vault</code>. It only opens for the top rank. Ranks go <b>npc</b> &rarr; <b>mid</b> &rarr; <b>sigma</b>.</p><p><a href=\"/lobby\">continue to the lobby &rarr;</a></p>"
+     },
+     {
+      "path": "/lobby",
+      "method": "GET",
+      "body": "<h1>The lobby</h1><p>You made it inside Brainrot HQ. The lobby is empty except for a very loud Skibidi Toilet singing in the corner.</p><div class=\"card\">The doorman said something important on your way in, but your browser hurried you straight past him.</div><p class=\"mut\">Fanum tax at the snack bar: one chip per bag.</p>"
+     },
+     {
+      "path": "/vault",
+      "method": "POST",
+      "when": {
+       "cookie": {
+        "rank": "sigma"
+       },
+       "header": {
+        "User-Agent": "AuraScanner/6.7"
+       }
+      },
+      "setCookie": {
+       "vaultpass": "k33p3r_n0d"
+      },
+      "body": "<h1>The vault door swings open</h1><p>Sigma rank, the right knock, the right scanner. The keeper nods and hands you a vault pass (it is in this reply's Set-Cookie header).</p><div class=\"card\">Your locker is number <b>1001</b>. The keeper's locker is in here too, but that one is <i>definitely</i> private.</div><p><a href=\"/locker?id=1001\">open your locker &rarr;</a></p>"
+     },
+     {
+      "path": "/vault",
+      "method": "POST",
+      "when": {
+       "cookie": {
+        "rank": "sigma"
+       }
+      },
+      "status": 401,
+      "statusText": "Unauthorized",
+      "headers": {
+       "X-Vault-Note": "this vault only trusts the browser that calls itself AuraScanner/6.7"
+      },
+      "body": "<h1>Scanner says no</h1><p>Sigma rank and the right knock. Respect. But the vault does not trust your browser.</p><p>Your browser introduced itself as <code>{header:User-Agent}</code>. The vault left a note about that in this reply's Response Headers.</p>"
+     },
+     {
+      "path": "/vault",
+      "when": {
+       "cookie": {
+        "rank": "sigma"
+       }
+      },
+      "status": 405,
+      "statusText": "Method Not Allowed",
+      "headers": {
+       "Allow": "POST"
+      },
+      "body": "<h1>Sigma confirmed</h1><p>Your aura checks out. But nobody gets into the vault with a <b>{method}</b>-style knock.</p><p>Read the status code and the <code>Allow</code> header in this reply.</p>"
+     },
+     {
+      "path": "/vault",
+      "when": {
+       "cookie": {
+        "rank": "mid"
+       }
+      },
+      "status": 403,
+      "statusText": "Forbidden",
+      "body": "<h1>Mid aura</h1><p>Closer, but mid is still mid. Ranks go <b>npc</b> &rarr; <b>mid</b> &rarr; <b>sigma</b>.</p><p class=\"mut\">The vault reads your rank from the cookie your browser sends.</p>"
+     },
+     {
+      "path": "/vault",
+      "when": {
+       "cookie": {
+        "rank": "npc"
+       }
+      },
+      "status": 403,
+      "statusText": "Forbidden",
+      "body": "<h1>NPC detected</h1><p>Your rank cookie says <b>npc</b>. NPCs walk in circles in the lobby; they do not open vaults. Ranks go <b>npc</b> &rarr; <b>mid</b> &rarr; <b>sigma</b>.</p><p class=\"mut\">The vault reads your rank from the cookie your browser sends.</p>"
+     },
+     {
+      "path": "/vault",
+      "status": 403,
+      "statusText": "Forbidden",
+      "body": "<h1>Who are you?</h1><p>The vault read your rank cookie and got: <code>{cookie:rank}</code> (blank means you have no rank at all).</p><p>Ranks are handed out by the doorman at the secret entrance. Ranks go <b>npc</b> &rarr; <b>mid</b> &rarr; <b>sigma</b>.</p>"
+     },
+     {
+      "path": "/locker",
+      "method": "GET",
+      "when": {
+       "cookie": {
+        "vaultpass": "k33p3r_n0d"
+       },
+       "query": {
+        "id": "6767"
+       }
+      },
+      "body": "<h1>Locker 6767 &middot; the Vault Keeper</h1><p>The rarest aura on the internet, in a jar. Next to it, a sticky note:</p><div class=\"card\">Vault code: <code>{flag}</code></div><p class=\"mut\">Lesson the keeper forgot: the server never checked whose locker you asked for. Final boss defeated. +1000 aura.</p>"
+     },
+     {
+      "path": "/locker",
+      "method": "GET",
+      "when": {
+       "cookie": {
+        "vaultpass": "k33p3r_n0d"
+       },
+       "query": {
+        "id": "1001"
+       }
+      },
+      "body": "<h1>Locker 1001 &middot; yours</h1><p>Inside: one gym sock and a slightly crushed Chimpanzini Bananini banana.</p><div class=\"card\"><b>Locker list on the door</b><br>1001 &middot; you<br>6767 &middot; Tung Tung Tung Sahur, the Vault Keeper (private!)</div><p class=\"mut\">The lockers are picked by the id in this page's URL.</p>"
+     },
+     {
+      "path": "/locker",
+      "method": "GET",
+      "when": {
+       "cookie": {
+        "vaultpass": "k33p3r_n0d"
+       }
+      },
+      "body": "<h1>Locker {query:id}</h1><p>Empty. Not even a crumb. Check the locker list on the door of your own locker (1001) for the numbers that are in use.</p><p><a href=\"/locker?id=1001\">back to your locker</a></p>"
+     },
+     {
+      "path": "/locker",
+      "method": "GET",
+      "status": 403,
+      "statusText": "Forbidden",
+      "body": "<h1>No vault pass</h1><p>Locker {query:id} stays shut: there is no vault pass on you.</p><p class=\"mut\">The keeper hands out vault passes (as a cookie) when the vault door opens for you.</p>"
+     }
+    ]
+   },
+   "flagHash": "5366071c8caacde681a589536382b48525c4d3e8dcbf8cd86aa84e6e48776a3e",
+   "flagFormat": "flipped{...}"
   }
  ]
 }

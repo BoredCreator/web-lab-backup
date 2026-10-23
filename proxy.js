@@ -18,7 +18,7 @@
   /* ---------------- the server ---------------- */
   // spec: { host, start:{method,path}, flag, routes:[ {method, path, when?, setCookie?, status?, headers?, body, redirect?, serve?} ] }
   // when: { cookie:{name:val}, header:{name:val}, query:{k:v}, bodyParam:{k:v}, bodyParamAtMost:{k:number}, bodyTotalAtMost:{'a*b+c*d':number}, pathIncludes:'..' }
-  // placeholders: {flag} {cookie:k} {query:k} {form:k} {header:K} {file:path|body} {total:a*b+c*d} (form fields multiplied and added, 2 decimals)
+  // placeholders: {flag} {method} {cookie:k} {query:k} {form:k} {header:K} {file:path|body} {total:a*b+c*d} (form fields multiplied and added, 2 decimals)
   // serve: { param, dir, files:{'/abs/path':text}, missing } reads files[dir + '/' + query[param]] with ../ resolved like cd; fills {file:path} {file:body}
   class Server {
     constructor(spec) { this.spec = spec; this.jar = {}; (spec.initialCookies || null) && Object.assign(this.jar, spec.initialCookies); }
@@ -40,6 +40,7 @@
       return String(s == null ? '' : s)
         .replace(/\{file:(path|body)\}/g, (m, k) => file[k] == null ? '' : file[k])
         .replace(/\{flag\}/g, this.spec.flag || '')
+        .replace(/\{method\}/g, req.method)
         .replace(/\{cookie:([^}]+)\}/g, (m, k) => req.cookies[k] == null ? '' : req.cookies[k])
         .replace(/\{query:([^}]+)\}/g, (m, k) => req.query[k] == null ? '' : req.query[k])
         .replace(/\{form:([^}]+)\}/g, (m, k) => req.form[k] == null ? '' : req.form[k])
