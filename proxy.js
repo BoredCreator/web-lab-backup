@@ -29,6 +29,7 @@
       if (when.header) { const H = lc(req.headers); for (const k in when.header) if ((H[k.toLowerCase()] || '') !== when.header[k]) return false; }
       if (when.query) for (const k in when.query) if ((req.query[k] || '') !== when.query[k]) return false;
       if (when.queryIncludes) for (const k in when.queryIncludes) if (((req.query[k] || '')).indexOf(when.queryIncludes[k]) < 0) return false;
+      if (when.bodyParamAbsent) for (const k of when.bodyParamAbsent) if (Object.prototype.hasOwnProperty.call(req.form, k)) return false;
       if (when.bodyParam) for (const k in when.bodyParam) if ((req.form[k] || '') !== when.bodyParam[k]) return false;
       if (when.bodyParamAtMost) for (const k in when.bodyParamAtMost) { const v = (req.form[k] || '').trim(); if (!v || isNaN(Number(v)) || Number(v) > when.bodyParamAtMost[k]) return false; }
       if (when.bodyTotalAtMost) for (const k in when.bodyTotalAtMost) { const t = formTotal(req.form, k); if (isNaN(t) || t > when.bodyTotalAtMost[k]) return false; }
@@ -145,6 +146,16 @@
       bar.append(this.back, this.reload, this.addr, this.go);
       this.page = el('div', 'px-page');
       browser.append(bar, this.page);
+      if (this.spec.codec) {
+        const helper = el('details', 'px-codec'); helper.style.padding = '12px';
+        helper.append(el('summary', '', 'Base64 helper (works offline)'));
+        const input = el('textarea', 'px-codec-input'); input.setAttribute('aria-label', 'Base64 helper input'); input.placeholder = 'Paste a value or type plain text'; input.style.width = '100%';
+        const output = el('textarea', 'px-codec-output'); output.setAttribute('aria-label', 'Base64 helper result'); output.readOnly = true; output.style.width = '100%';
+        const decode = el('button', 'px-decode', 'Decode'); const encode = el('button', 'px-encode', 'Encode');
+        decode.addEventListener('click', () => { try { output.value = new TextDecoder('utf-8', {fatal: true}).decode(Uint8Array.from(atob(input.value.trim()), x => x.charCodeAt(0))); } catch (_) { output.value = 'That value is not valid base64 text.'; } });
+        encode.addEventListener('click', () => { output.value = btoa(Array.from(new TextEncoder().encode(input.value), x => String.fromCharCode(x)).join('')); });
+        helper.append(input, decode, encode, output); browser.append(helper);
+      }
       // right: DevTools. row 1 = the panel tabs (only Network is real), row 2 = the Network toolbar, row 3 = the filter bar
       const insp = el('div', 'px-insp');
       const tabs = el('div', 'px-dt-tabs');

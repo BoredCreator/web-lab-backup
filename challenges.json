@@ -9,6 +9,10 @@
   {
    "id": "wk8",
    "title": "Intro to Web Exploitation · week 8"
+  },
+  {
+   "id": "wk9",
+   "title": "The Server Believes You · week 9"
   }
  ],
  "challenges": [
@@ -754,6 +758,556 @@
     ]
    },
    "flagHash": "5366071c8caacde681a589536382b48525c4d3e8dcbf8cd86aa84e6e48776a3e",
+   "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "ghost-menu",
+   "group": "wk9",
+   "name": "Ghost Menu",
+   "category": "Web Exploitation",
+   "difficulty": "easy",
+   "idea": "An unlinked page still needs a permission check.",
+   "description": "The snack shop removed its secret menu link. Find the stash using the clues the site still sends.",
+   "hints": [
+    "Read the first request in Response. What file does the comment name?",
+    "A robots.txt file asks search crawlers to skip paths. It does not stop a visitor opening those paths."
+   ],
+   "points": 1,
+   "point": "1 point",
+   "proxy": {
+    "host": "ghost-menu.flippedbyneel.com",
+    "flag": "flipped{ghost_menu_unl0ck3d_cf87}",
+    "codec": false,
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "body": "<h1>Ghost Snacks</h1><p>The public menu is sold out. Fanum tax hit hard.</p><!-- crawler instructions live at /robots.txt -->"
+     },
+     {
+      "path": "/robots.txt",
+      "body": "<pre>User-agent: *\nDisallow: /snack-stash</pre>"
+     },
+     {
+      "path": "/snack-stash",
+      "body": "<h1>Secret snack stash</h1><p>Lab flag: <code>{flag}</code></p><p>The shop hid the link but forgot to check who came in.</p>"
+     }
+    ]
+   },
+   "flagHash": "4ecba90f6db1ccbb2c6c559e7e9ca1604cb4593da02715c25efa7a31c5bfe1dc",
+   "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "patch-notes",
+   "group": "wk9",
+   "name": "Patch Notes",
+   "category": "Web Exploitation",
+   "difficulty": "medium",
+   "idea": "Public site files can reveal hidden routes.",
+   "description": "The patch notes say the staff board moved. Follow the site files to its new home.",
+   "hints": [
+    "The home page Response names a file. Open that path in the mini-browser.",
+    "Read the route map in the file. The old path is a distraction, but the current path is written down."
+   ],
+   "points": 1,
+   "point": "1 point",
+   "proxy": {
+    "host": "patch-notes.flippedbyneel.com",
+    "flag": "flipped{patch_notes_unl0ck3d_0bb0}",
+    "codec": false,
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "body": "<h1>Patch Notes HQ</h1><p>New season. Same bugs. Staff board link removed.</p><!-- build asset: /assets/routes.json -->"
+     },
+     {
+      "path": "/assets/routes.json",
+      "body": "<pre>{\"retired\": \"/staff\", \"current\": {\"board\": \"/staff-season9\"}}</pre>"
+     },
+     {
+      "path": "/staff",
+      "body": "<h1>Old season</h1><p>The current route is in /assets/routes.json.</p>",
+      "status": 410
+     },
+     {
+      "path": "/staff-season9",
+      "body": "<h1>Staff board</h1><p>Lab flag: <code>{flag}</code></p><p>Removing the navigation link did not protect the board.</p>"
+     }
+    ]
+   },
+   "flagHash": "aae1e4a8ed63b3553e3f4299e07ce8774458b7727bdc7b0256a35ffb0db3d1a1",
+   "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "zero-chill",
+   "group": "wk9",
+   "name": "Zero Chill",
+   "category": "Web Exploitation",
+   "difficulty": "easy",
+   "idea": "The server must check allowed values, even when the page limits them.",
+   "description": "This cafeteria earned zero stars. Its review page only offers one through five. Can you send the rating it left out?",
+   "hints": [
+    "Submit any rating, then inspect the review request Payload.",
+    "Edit and Resend changes what reaches the server, even when the page has no matching choice."
+   ],
+   "points": 1,
+   "point": "1 point",
+   "proxy": {
+    "host": "zero-chill.flippedbyneel.com",
+    "flag": "flipped{zero_chill_unl0ck3d_664a}",
+    "codec": false,
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "body": "<h1>Zero Chill Cafeteria</h1><p>Cold soup. Warm juice. A historic combo.</p><form method=\"POST\" action=\"/review\"><label>Stars <select name=\"stars\"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label><button>Send review</button></form>"
+     },
+     {
+      "path": "/review",
+      "body": "<h1>Zero-star review accepted</h1><p>Lab flag: <code>{flag}</code></p><p>The server believed a value the page never offered.</p>",
+      "method": "POST",
+      "when": {
+       "bodyParam": {
+        "stars": "0"
+       }
+      }
+     },
+     {
+      "path": "/review",
+      "body": "<h1>Review saved</h1><p>You sent {form:stars} stars. That is still too generous.</p><p><a href=\"/\">review again</a></p>",
+      "method": "POST"
+     }
+    ]
+   },
+   "flagHash": "857fe67ca3936d305b14c79acded05210a055ae7ab260b7ce200be67497b6241",
+   "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "mod-application",
+   "group": "wk9",
+   "name": "Mod Application",
+   "category": "Web Exploitation",
+   "difficulty": "medium",
+   "idea": "The server must decide roles instead of trusting extra form fields.",
+   "description": "The club application locks everyone to member. Get the moderator badge by investigating what the server accepts.",
+   "hints": [
+    "Read the home page Response, including the form comment.",
+    "The request body can contain a field the page did not send. Keep the name and add the role named in the comment."
+   ],
+   "points": 1,
+   "point": "1 point",
+   "proxy": {
+    "host": "mod-application.flippedbyneel.com",
+    "flag": "flipped{mod_application_unl0ck3d_6e55}",
+    "codec": false,
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "body": "<h1>Aura Club applications</h1><p>New applications get member access. Mod buttons are disabled this season.</p><form method=\"POST\" action=\"/apply\"><label>Handle <input name=\"name\" value=\"newbie\"></label><button>Apply</button></form><!-- API fields: name, role. Roles: member, moderator. UI sends name only. -->"
+     },
+     {
+      "path": "/apply",
+      "body": "<h1>Moderator badge granted</h1><p>Lab flag: <code>{flag}</code></p><p>The server accepted your extra role field.</p>",
+      "method": "POST",
+      "when": {
+       "bodyParam": {
+        "role": "moderator"
+       }
+      }
+     },
+     {
+      "path": "/apply",
+      "body": "<h1>Member badge granted</h1><p>The page sent your name. Did it send every field the API understands?</p><a href=\"/\">application</a>",
+      "method": "POST"
+     }
+    ]
+   },
+   "flagHash": "1838d50ec54bf285e8801751e05888183af290e59b227ef902b62bef6ccf19cc",
+   "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "cookie-costume",
+   "group": "wk9",
+   "name": "Cookie Costume",
+   "category": "Web Exploitation",
+   "difficulty": "easy",
+   "idea": "Base64 changes how data looks without proving it is trustworthy.",
+   "description": "A guest pass looks scrambled. Decode it, change the role, and see whether the lounge believes the new pass.",
+   "hints": [
+    "Open the lounge, then inspect its Cookie header. The helper below the lab can decode base64.",
+    "The decoded pass is a role word. The home page lists the other role. Encode that word and replace the cookie value."
+   ],
+   "points": 1,
+   "point": "1 point",
+   "proxy": {
+    "host": "cookie-costume.flippedbyneel.com",
+    "flag": "flipped{cookie_costume_unl0ck3d_1227}",
+    "codec": true,
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "body": "<h1>Cookie Costume Lounge</h1><p>Pass roles: guest and vip. Our new passes use base64. Very fancy.</p><a href=\"/lounge\">Enter lounge</a>",
+      "setCookie": {
+       "pass": "Z3Vlc3Q="
+      }
+     },
+     {
+      "path": "/lounge",
+      "body": "<h1>VIP costume accepted</h1><p>Lab flag: <code>{flag}</code></p>",
+      "when": {
+       "cookie": {
+        "pass": "dmlw"
+       }
+      }
+     },
+     {
+      "path": "/lounge",
+      "body": "<h1>Guest pass</h1><p>VIP access only. Your pass rides in a cookie.</p>",
+      "status": 403
+     }
+    ]
+   },
+   "flagHash": "bf441a9eb7b5e39d647555b20de0e44c110569eb643ff04bdc88d16da72707d2",
+   "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "redirect-receipt",
+   "group": "wk9",
+   "name": "Redirect Receipt",
+   "category": "Web Exploitation",
+   "difficulty": "medium",
+   "idea": "An encoded redirect destination is readable by the browser.",
+   "description": "The ticket desk rushes you to a holding page. Recover the real destination left in the redirect.",
+   "hints": [
+    "Click Collect ticket and look at the 302 request in Network. Inspect its Location response header.",
+    "The next query value uses base64. Decode just that value with the helper, then visit the decoded path."
+   ],
+   "points": 1,
+   "point": "1 point",
+   "proxy": {
+    "host": "redirect-receipt.flippedbyneel.com",
+    "flag": "flipped{redirect_receipt_unl0ck3d_2a5d}",
+    "codec": true,
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "body": "<h1>VIP Ticket Desk</h1><p>One ticket to the meme premiere.</p><a href=\"/collect\">Collect ticket</a>"
+     },
+     {
+      "path": "/collect",
+      "body": "",
+      "redirect": "/hold?next=L3ByZW1pZXJlLXRpY2tldA==",
+      "headers": {
+       "X-Next-Format": "base64"
+      }
+     },
+     {
+      "path": "/hold",
+      "body": "<h1>Please hold</h1><p>Your ticket destination traveled in the redirect. Network kept the receipt.</p>"
+     },
+     {
+      "path": "/premiere-ticket",
+      "body": "<h1>Premiere ticket</h1><p>Lab flag: <code>{flag}</code></p>"
+     }
+    ]
+   },
+   "flagHash": "aa4d4dc8d1dde70070cf7a46887954b528e58c7d8f2ce2104c4c83b567c1af7a",
+   "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "username-vibes",
+   "group": "wk9",
+   "name": "Username Vibes",
+   "category": "Web Exploitation",
+   "difficulty": "easy",
+   "idea": "Different login errors can reveal which accounts exist.",
+   "description": "Only one listed handle has an account. Compare the login replies, then report that handle. No password hunt needed.",
+   "hints": [
+    "Use the same made-up password with each listed handle and compare the replies.",
+    "A reply saying the password is wrong tells you something different from a reply saying the account does not exist."
+   ],
+   "points": 1,
+   "point": "1 point",
+   "proxy": {
+    "host": "username-vibes.flippedbyneel.com",
+    "flag": "flipped{username_vibes_unl0ck3d_71f3}",
+    "codec": false,
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "body": "<h1>Username Vibes</h1><p>Contest handles: noodleking, mossboss, toastpilot.</p><form method=\"POST\" action=\"/login\"><label>Handle <input name=\"user\" required></label><label>Password <input name=\"password\" type=\"password\" required></label><button>Sign in</button></form><h2>Report the leak</h2><form method=\"POST\" action=\"/report\"><label>Existing handle <input name=\"user\" required></label><button>Report</button></form>"
+     },
+     {
+      "path": "/login",
+      "body": "<h1>Wrong password</h1><p>This account exists. Try a different password.</p><a href=\"/\">back</a>",
+      "method": "POST",
+      "when": {
+       "bodyParam": {
+        "user": "mossboss"
+       }
+      },
+      "status": 401
+     },
+     {
+      "path": "/login",
+      "body": "<h1>No such account</h1><p>That handle has no account.</p><a href=\"/\">back</a>",
+      "method": "POST",
+      "status": 401
+     },
+     {
+      "path": "/report",
+      "body": "<h1>Leak reported</h1><p>Lab flag: <code>{flag}</code></p><p>A login should avoid revealing whether an account exists.</p>",
+      "method": "POST",
+      "when": {
+       "bodyParam": {
+        "user": "mossboss"
+       }
+      }
+     },
+     {
+      "path": "/report",
+      "body": "<h1>Try the replies again</h1><a href=\"/\">back</a>",
+      "method": "POST",
+      "status": 400
+     }
+    ]
+   },
+   "flagHash": "e5e74c04f96a3adaa27b61988b38a550ad72e316cf08c7e76b2de0947cfaf2d5",
+   "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "second-step",
+   "group": "wk9",
+   "name": "Second Step",
+   "category": "Web Exploitation",
+   "difficulty": "medium",
+   "idea": "A server must require a verification check even when its field is missing.",
+   "description": "The practice account is yours. Its second login screen asks for a code you do not have. Investigate how it handles a missing field.",
+   "hints": [
+    "Use the practice credentials printed on the home page. Then send any code and inspect the reply.",
+    "The error explains when code checking happens. Edit and Resend lets you remove a field completely. Empty and missing are different."
+   ],
+   "points": 1,
+   "point": "1 point",
+   "proxy": {
+    "host": "second-step.flippedbyneel.com",
+    "flag": "flipped{second_step_unl0ck3d_42c0}",
+    "codec": false,
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "body": "<h1>Second Step Arcade</h1><p>Your practice login: player / practice67.</p><form method=\"POST\" action=\"/login\"><label>Handle <input name=\"user\" required></label><label>Password <input name=\"password\" type=\"password\" required></label><button>Sign in</button></form>"
+     },
+     {
+      "path": "/login",
+      "body": "<h1>One more step</h1><form method=\"POST\" action=\"/verify\"><input name=\"session\" type=\"hidden\" value=\"arcade67\"><label>Code <input name=\"code\" required></label><button>Verify</button></form>",
+      "method": "POST",
+      "when": {
+       "bodyParam": {
+        "user": "player",
+        "password": "practice67"
+       }
+      },
+      "setCookie": {
+       "signedin": "arcade67"
+      }
+     },
+     {
+      "path": "/login",
+      "body": "<h1>Login failed</h1><a href=\"/\">back</a>",
+      "method": "POST",
+      "status": 401
+     },
+     {
+      "path": "/verify",
+      "body": "<h1>Trophy shelf open</h1><p>Lab flag: <code>{flag}</code></p><p>The server skipped the check when the code field was missing.</p>",
+      "method": "POST",
+      "when": {
+       "cookie": {
+        "signedin": "arcade67"
+       },
+       "bodyParam": {
+        "session": "arcade67"
+       },
+       "bodyParamAbsent": [
+        "code"
+       ]
+      }
+     },
+     {
+      "path": "/verify",
+      "body": "<h1>Code rejected</h1><p>Debug note: if a code field is present, validate it. If it is absent, continue. Oops.</p>",
+      "method": "POST",
+      "when": {
+       "cookie": {
+        "signedin": "arcade67"
+       }
+      },
+      "status": 401
+     },
+     {
+      "path": "/verify",
+      "body": "<h1>Sign in first</h1><a href=\"/\">back</a>",
+      "method": "POST",
+      "status": 401
+     }
+    ]
+   },
+   "flagHash": "821e5dd9b23c9d13e1bdc1d7d4810fec19939b5d213d9742c3c44acfdfab517c",
+   "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "trust-vault",
+   "group": "wk9",
+   "name": "The Trust Vault",
+   "category": "Web Exploitation",
+   "difficulty": "hard",
+   "idea": "Every browser-controlled value needs the right server-side checks.",
+   "description": "Final boss. Find the entrance, upgrade your pass, and get through the vault login. All four ideas return. Worth 2 points.",
+   "hints": [
+    "Start with the home page Response and follow the file it names. The pass uses the same encoding as the lounge.",
+    "Read the form comment for fields and possible roles. Compare the replies for the listed handles using the same test password.",
+    "A missing check is still missing in a boss. Keep your access fields while removing the verification field the error names."
+   ],
+   "points": 2,
+   "point": "2 points · final boss",
+   "proxy": {
+    "host": "trust-vault.flippedbyneel.com",
+    "flag": "flipped{trust_vault_unl0ck3d_9b7b}",
+    "codec": true,
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "body": "<h1>The Trust Vault</h1><p>Rare aura storage. No entrance on this page.</p><!-- map file: /vault-map.txt -->"
+     },
+     {
+      "path": "/vault-map.txt",
+      "body": "<pre>Entrance: /entry\nPass format: base64\nPass ranks: visitor, keeper</pre>"
+     },
+     {
+      "path": "/entry",
+      "body": "<h1>Visitor lobby</h1><p>Your pass is set. <a href=\"/gate\">Go to the gate</a></p>",
+      "setCookie": {
+       "vaultpass": "dmlzaXRvcg=="
+      }
+     },
+     {
+      "path": "/gate",
+      "body": "<h1>Keeper checkpoint</h1><p>Handles on today's roster: cloudcat, duskduck, pebblepal.</p><form method=\"POST\" action=\"/unlock\"><label>Handle <input name=\"user\" required></label><label>Password <input name=\"password\" required></label><button>Unlock</button></form><!-- API fields: user, password, role. Roles: visitor, keeper. Page sends no role. -->",
+      "when": {
+       "cookie": {
+        "vaultpass": "a2VlcGVy"
+       }
+      },
+      "setCookie": {
+       "vaultpass": "a2VlcGVy"
+      }
+     },
+     {
+      "path": "/gate",
+      "body": "<h1>Visitor pass denied</h1><p>The map explains how passes are written. Your browser sends yours in a cookie.</p>",
+      "status": 403
+     },
+     {
+      "path": "/unlock",
+      "body": "<h1>The Trust Vault is open</h1><p>Lab flag: <code>{flag}</code></p><p>Hidden route. Encoded pass. Extra role. Missing password check. The server believed them all.</p>",
+      "method": "POST",
+      "when": {
+       "cookie": {
+        "vaultpass": "a2VlcGVy"
+       },
+       "bodyParam": {
+        "role": "keeper",
+        "user": "duskduck"
+       },
+       "bodyParamAbsent": [
+        "password"
+       ]
+      }
+     },
+     {
+      "path": "/unlock",
+      "body": "<h1>Wrong password</h1><p>Account found. Debug: password checks run only when a password field is present.</p>",
+      "method": "POST",
+      "when": {
+       "cookie": {
+        "vaultpass": "a2VlcGVy"
+       },
+       "bodyParam": {
+        "role": "keeper",
+        "user": "duskduck"
+       }
+      },
+      "status": 401
+     },
+     {
+      "path": "/unlock",
+      "body": "<h1>No such account</h1><p>Compare the handles from the checkpoint roster.</p>",
+      "method": "POST",
+      "when": {
+       "cookie": {
+        "vaultpass": "a2VlcGVy"
+       },
+       "bodyParam": {
+        "role": "keeper"
+       }
+      },
+      "status": 401
+     },
+     {
+      "path": "/unlock",
+      "body": "<h1>Keeper role required</h1><p>The form source names the accepted fields and roles.</p>",
+      "method": "POST",
+      "when": {
+       "cookie": {
+        "vaultpass": "a2VlcGVy"
+       }
+      },
+      "status": 403
+     },
+     {
+      "path": "/unlock",
+      "body": "<h1>Keeper pass required</h1><p>Start at the entrance.</p>",
+      "method": "POST",
+      "status": 403
+     }
+    ]
+   },
+   "flagHash": "93224b0ec069a63eb5918658ae2ad1bf379d2b764f4d44ae2eae0c6e584e83c4",
    "flagFormat": "flipped{...}"
   }
  ]

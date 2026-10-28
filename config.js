@@ -10,5 +10,5 @@ window.CTF_CONFIG = {
   // If the API is unreachable (local file preview, dev), treat every challenge as unlocked?
   UNLOCK_ALL_WHEN_OFFLINE: true,
   // Shown in the page header.
-  CLUB_NAME: "Stratford Cybersecurity Club · week 8"
+  CLUB_NAME: "Stratford Cybersecurity Club · weeks 8 and 9"
 };
