@@ -15,15 +15,76 @@
   // 'price_a*qty_a+price_b*qty_b' over the form fields -> a number rounded to cents (NaN if a field is missing or not a number)
   function formTotal(form, expr) { let t = 0; for (const term of expr.split('+')) { let p = 1; for (const k of term.split('*')) { const v = (form[k.trim()] || '').trim(); if (!v || isNaN(Number(v))) return NaN; p *= Number(v); } t += p; } return Math.round(t * 100) / 100; }
 
+  /* Small read-only SQL teaching model. No eval, database, network, or writes.
+     Supported: SELECT columns FROM table WHERE comparisons, AND/OR, (), -- comments,
+     single-quoted strings ('' escapes an apostrophe), integer literals and bound values. */
+  function sqlEscape(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function sqlRun(query, tables, bound) {
+    if (query.length > 4096) throw new Error('Query is too long for this teaching model.');
+    const tokens = []; let i = 0;
+    while (i < query.length) {
+      if (/\s/.test(query[i])) { i++; continue; }
+      if (query.slice(i,i+2) === '--') { while (i < query.length && query[i] !== '\n') i++; continue; }
+      const c = query[i];
+      if (c === "'") { let value = '', closed = false; i++; while (i < query.length) { if (query[i] === "'") { if (query[i+1] === "'") { value += "'"; i += 2; } else { i++; closed = true; break; } } else value += query[i++]; } if (!closed) throw new Error('Unclosed quoted text.'); tokens.push({type:'literal',value}); }
+      else if (/[0-9]/.test(c)) { const m = /^\d+/.exec(query.slice(i))[0]; tokens.push({type:'literal',value:Number(m)}); i += m.length; }
+      else if (/[A-Za-z_]/.test(c)) { const m = /^[A-Za-z_][A-Za-z_0-9]*/.exec(query.slice(i))[0]; tokens.push({type:'word',value:m}); i += m.length; }
+      else if (c === ':' && /^:p\d+/.test(query.slice(i))) { const m = /^:p\d+/.exec(query.slice(i))[0]; if (!Object.prototype.hasOwnProperty.call(bound || {}, m)) throw new Error('Missing bound value.'); tokens.push({type:'literal',value:bound[m]}); i += m.length; }
+      else if (['!=','<>'].includes(query.slice(i,i+2))) { tokens.push({type:'op',value:query.slice(i,i+2)}); i += 2; }
+      else if ('=(),*'.includes(c)) { tokens.push({type:'op',value:c}); i++; }
+      else throw new Error('Unsupported SQL symbol: ' + c);
+      if (tokens.length > 512) throw new Error('Too many SQL tokens.');
+    }
+    let p = 0, depth = 0;
+    const is = v => tokens[p] && tokens[p].type !== 'literal' && tokens[p].value.toUpperCase() === v;
+    const take = v => { if (!is(v)) throw new Error('Expected ' + v + '.'); return tokens[p++]; };
+    const identifier = () => { const t = tokens[p++]; if (!t || t.type !== 'word') throw new Error('Expected a column or table name.'); return t.value.toLowerCase(); };
+    take('SELECT'); const columns = []; if (is('*')) { p++; columns.push('*'); } else { columns.push(identifier()); while (is(',')) { p++; columns.push(identifier()); } }
+    take('FROM'); const table = identifier();
+    if (!Object.prototype.hasOwnProperty.call(tables, table)) throw new Error('Unknown table: ' + table);
+    const rows = tables[table], known = new Set(rows.flatMap(r => Object.keys(r)));
+    for (const col of columns) if (col !== '*' && !known.has(col)) throw new Error('Unknown column: ' + col);
+    function value() { const t = tokens[p++]; if (!t) throw new Error('Expected a value.'); if (t.type === 'literal') return {kind:'literal',value:t.value}; if (t.type === 'word') { const key = t.value.toLowerCase(); if (!known.has(key)) throw new Error('Unknown column: ' + key); return {kind:'column',key}; } throw new Error('Expected a value.'); }
+    function atom() { if (++depth > 32) throw new Error('SQL nesting is too deep.'); let node; if (is('(')) { p++; node = or(); take(')'); } else { const left = value(), t = tokens[p++]; if (!t || t.type !== 'op' || !['=','!=','<>'].includes(t.value)) throw new Error('Expected = or !=.'); node = {kind:t.value,left,right:value()}; } depth--; return node; }
+    function and() { let node = atom(); while (is('AND')) { p++; node = {kind:'AND',left:node,right:atom()}; } return node; }
+    function or() { let node = and(); while (is('OR')) { p++; node = {kind:'OR',left:node,right:and()}; } return node; }
+    take('WHERE'); const tree = or(); if (p !== tokens.length) throw new Error('Unexpected SQL after the condition.');
+    function test(n,r) { if (n.kind === 'literal') return n.value; if (n.kind === 'column') return r[n.key]; if (n.kind === 'AND') return test(n.left,r) && test(n.right,r); if (n.kind === 'OR') return test(n.left,r) || test(n.right,r); const equal = test(n.left,r) === test(n.right,r); return n.kind === '=' ? equal : !equal; }
+    return rows.filter(r => test(tree,r)).map(r => columns[0] === '*' ? {...r} : Object.fromEntries(columns.map(c => [c,r[c]])));
+  }
+  function sqlEvaluate(spec, req) {
+    const bindings = {}, values = {}; let index = 0;
+    for (const [key, source] of Object.entries(spec.inputs || {})) values[key] = String((source.source === 'query' ? req.query : req.form)[source.name] || '');
+    const query = spec.template.replace(/\{input:([\w]+)\}/g, (_,key) => { if (!Object.prototype.hasOwnProperty.call(values,key)) throw new Error('Unknown SQL input.'); if (spec.bound) { const token = ':p' + index++; bindings[token] = values[key]; return token; } return values[key]; });
+    let rows = [], error = ''; try { rows = sqlRun(query, spec.tables, bindings); } catch (e) { error = e.message; }
+    let unsafeRows = [];
+    if (spec.auditTemplate) { const unsafe = sqlEvaluate({...spec,template:spec.auditTemplate,bound:false,auditTemplate:null},req); if (!unsafe.error) unsafeRows = unsafe.rows; }
+    return {query,bindings,values,rows,error,unsafeRows};
+  }
+  function sqlMatches(condition, result, state) {
+    if (!condition) return !result.error && result.rows.length > 0;
+    if (condition.error && !result.error.includes(condition.error)) return false;
+    if (!condition.error && result.error) return false;
+    if (condition.row && !result.rows.some(r => Object.entries(condition.row).every(([k,v]) => r[k] === v))) return false;
+    if (condition.first && (!result.rows[0] || !Object.entries(condition.first).every(([k,v]) => result.rows[0][k] === v))) return false;
+    if (condition.unsafeRow && !result.unsafeRows.some(r => Object.entries(condition.unsafeRow).every(([k,v]) => r[k] === v))) return false;
+    if (condition.count != null && result.rows.length !== condition.count) return false;
+    if (condition.minRows != null && result.rows.length < condition.minRows) return false;
+    if (condition.state && !condition.state.every(k => state[k])) return false;
+    if (condition.input && !Object.entries(condition.input).every(([k,v]) => result.values[k] === v)) return false;
+    return true;
+  }
+
   /* ---------------- the server ---------------- */
   // spec: { host, start:{method,path}, flag, routes:[ {method, path, when?, setCookie?, status?, headers?, body, redirect?, serve?} ] }
   // when: { cookie:{name:val}, header:{name:val}, query:{k:v}, bodyParam:{k:v}, bodyParamAtMost:{k:number}, bodyTotalAtMost:{'a*b+c*d':number}, pathIncludes:'..' }
   // placeholders: {flag} {method} {cookie:k} {query:k} {form:k} {header:K} {file:path|body} {total:a*b+c*d} (form fields multiplied and added, 2 decimals)
   // serve: { param, dir, files:{'/abs/path':text}, missing } reads files[dir + '/' + query[param]] with ../ resolved like cd; fills {file:path} {file:body}
   class Server {
-    constructor(spec) { this.spec = spec; this.jar = {}; (spec.initialCookies || null) && Object.assign(this.jar, spec.initialCookies); }
+    constructor(spec) { this.spec = spec; this.jar = {}; this.state = {}; (spec.initialCookies || null) && Object.assign(this.jar, spec.initialCookies); }
     matchWhen(when, req) {
       if (!when) return true;
+      if (when.state && !when.state.every(k => this.state[k])) return false;
       if (when.cookie) for (const k in when.cookie) if ((req.cookies[k] == null ? '' : String(req.cookies[k])) !== String(when.cookie[k])) return false;
       if (when.cookieSet) for (const k of when.cookieSet) if (req.cookies[k] == null) return false;
       if (when.header) { const H = lc(req.headers); for (const k in when.header) if ((H[k.toLowerCase()] || '') !== when.header[k]) return false; }
@@ -38,15 +99,16 @@
     }
     fill(s, req) {
       const file = req.file || {};
-      return String(s == null ? '' : s)
-        .replace(/\{file:(path|body)\}/g, (m, k) => file[k] == null ? '' : file[k])
-        .replace(/\{flag\}/g, this.spec.flag || '')
-        .replace(/\{method\}/g, req.method)
-        .replace(/\{cookie:([^}]+)\}/g, (m, k) => req.cookies[k] == null ? '' : req.cookies[k])
-        .replace(/\{query:([^}]+)\}/g, (m, k) => req.query[k] == null ? '' : req.query[k])
-        .replace(/\{form:([^}]+)\}/g, (m, k) => req.form[k] == null ? '' : req.form[k])
-        .replace(/\{total:([^}]+)\}/g, (m, k) => { const t = formTotal(req.form, k); return isNaN(t) ? '?' : t.toFixed(2); })
-        .replace(/\{header:([^}]+)\}/g, (m, k) => lc(req.headers)[k.toLowerCase()] || '');
+      return String(s == null ? '' : s).replace(/\{(file:(?:path|body)|sql:(?:query|bindings|rows|error|checks)|flag|method|cookie:[^}]+|query:[^}]+|form:[^}]+|total:[^}]+|header:[^}]+)\}/g, (m, token) => {
+        const i = token.indexOf(':'), kind = i < 0 ? token : token.slice(0,i), key = token.slice(i+1);
+        if (kind === 'flag') return this.spec.flag || '';
+        if (kind === 'method') return req.method;
+        if (kind === 'file') return file[key] == null ? '' : file[key];
+        if (kind === 'sql') { const value = req.sql ? req.sql[key] : ''; return sqlEscape(typeof value === 'string' ? value : JSON.stringify(value,null,2)); }
+        if (kind === 'total') { const t = formTotal(req.form,key); return isNaN(t) ? '?' : t.toFixed(2); }
+        const values = kind === 'cookie' ? req.cookies : kind === 'query' ? req.query : kind === 'form' ? req.form : lc(req.headers);
+        const v = values[kind === 'header' ? key.toLowerCase() : key]; return v == null ? '' : v;
+      });
     }
     // raw: {method, url, path, headers:{}, body}  -> record {req, res}
     handle(raw) {
@@ -68,6 +130,14 @@
       if (!route) {
         res = { status: 404, statusText: 'Not Found', headers: { 'Content-Type': 'text/html' }, body: `<!doctype html><title>404</title><h1>404 Not Found</h1><p>No page at <code>${req.path}</code> on ${this.spec.host}.</p>` };
       } else {
+        if (route.recordState) for (const key of route.recordState) this.state[key] = true;
+        if (route.sql) {
+          req.sql = sqlEvaluate(route.sql, req);
+          for (const check of route.sql.record || []) if (sqlMatches(check.when, req.sql, this.state)) this.state[check.key] = true;
+          req.sql.checks = (route.sql.progress || []).map(k => k + ': ' + (this.state[k] ? 'PASS' : 'not yet')).join('\n');
+          const success = sqlMatches(route.sql.success, req.sql, this.state);
+          route = {...route, body: success ? route.sql.successBody : (req.sql.error ? route.sql.errorBody : route.sql.failureBody), setCookie: success ? route.sql.successCookie : null};
+        }
         const setCookies = {};
         if (route.setCookie) for (const k in route.setCookie) { const v = this.fill(route.setCookie[k], req); setCookies[k] = v; this.jar[k] = v; }
         let status = route.status, body = route.body;
@@ -364,5 +434,5 @@
     }
   }
 
-  global.CTFProxy = { Proxy, Server };
+  global.CTFProxy = { Proxy, Server, sqlRun, sqlEvaluate, sqlEscape };
 })(window);

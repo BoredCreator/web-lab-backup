@@ -14,6 +14,15 @@
     try { const r = await fetch(API + '/state', { cache: 'no-store' }); if (!r.ok) throw new Error(String(r.status)); const j = await r.json(); return { unlocked: j.unlocked || [], all: !!j.all, updatedAt: j.updatedAt, online: true }; }
     catch (e) { return { unlocked: [], all: !!CFG.UNLOCK_ALL_WHEN_OFFLINE, online: false, error: String(e.message || e) }; }
   }
+  // A URL parameter requests a preview; only the server can authorize it.
+  async function verifyAdmin(key) {
+    if (!key) return false;
+    try {
+      const r = await fetch(API + '/state?admin=1', {cache: 'no-store', headers: {'Authorization': 'Bearer ' + key}});
+      return r.ok && (await r.json()).authenticated === true;
+    } catch (_) { return false; }
+  }
+  const savedAdminKey = () => { try { return sessionStorage.getItem('ctf.adminkey') || ''; } catch (_) { return ''; } };
   const isUnlocked = (state, slug) => state.all || state.unlocked.includes(slug);
   const isRevealed = (state, slug) => state.unlocked.includes(slug + '#reveal');
 
@@ -95,7 +104,8 @@
     if (!c) { main.innerHTML = '<div class="lockmsg"><div class="big">404</div>No such challenge. <a href="./">Back to the list</a></div>'; return; }
     document.title = c.name + ' · CTF Practice';
     let state = await fetchState(); setApiDot(state);
-    const key = new URLSearchParams(location.search).get('preview') === '1';
+    const wantsPreview = new URLSearchParams(location.search).get('preview') === '1';
+    const key = wantsPreview && await verifyAdmin(savedAdminKey());
     if (!isUnlocked(state, slug) && !key) {
       main.innerHTML = `<div class="lockmsg"><div class="big">locked</div><p>${esc(c.name)} is not open yet. Neel unlocks it from the front of the room.<br>This page checks again every few seconds.</p><p><a href="./">Back to the list</a></p></div>`;
       const t = setInterval(async () => { state = await fetchState(); setApiDot(state); if (isUnlocked(state, slug)) { clearInterval(t); location.reload(); } }, CFG.POLL_MS || 8000);
@@ -172,7 +182,8 @@
   async function pageAdmin() {
     header('admin');
     const m = await loadManifest(); const root = $('#adm'); const msg = $('#msg');
-    let keyVal = sessionStorage.getItem('ctf.adminkey') || '';
+    let keyVal = savedAdminKey();
+    let authenticated = false, authAttempt = 0;
     const keyIn = $('#key'); keyIn.value = keyVal;
     let state = await fetchState(); setApiDot(state);
     const boxes = new Map();
@@ -182,25 +193,40 @@
       for (const g of m.groups) {
         t.appendChild(h('tr', { class: 'grp' }, h('td', { colspan: 4 }, g.title)));
         for (const c of m.challenges.filter(x => x.group === g.id)) {
-          const cb = h('input', { type: 'checkbox' }); cb.checked = isUnlocked(state, c.slug); boxes.set(c.slug, cb);
+          const cb = h('input', { type: 'checkbox' }); cb.disabled = !authenticated; cb.checked = isUnlocked(state, c.slug); boxes.set(c.slug, cb);
           const anySecret = (c.commands || []).some(r => r.secret) || (c.hints || []).some(x => x && x.secret);
-          let rv = null; if (anySecret) { rv = h('input', { type: 'checkbox', title: 'reveal the blacked-out commands and locked hints' }); rv.checked = isRevealed(state, c.slug); boxes.set(c.slug + '#reveal', rv); }
-          t.appendChild(h('tr', {}, h('td', {}, cb), h('td', {}, h('a', { href: 'challenge.html?c=' + encodeURIComponent(c.slug) + '&preview=1', target: '_blank' }, c.name), rv ? h('label', { class: 'rv' }, rv, ' reveal solution lines') : null), h('td', { class: 'muted' }, c.category), h('td', { class: 'muted' }, c.idea || '')));
+          let rv = null; if (anySecret) { rv = h('input', { type: 'checkbox', title: 'reveal the blacked-out commands and locked hints' }); rv.disabled = !authenticated; rv.checked = isRevealed(state, c.slug); boxes.set(c.slug + '#reveal', rv); }
+          t.appendChild(h('tr', {}, h('td', {}, cb), h('td', {}, (authenticated ? h('a', { href: 'challenge.html?c=' + encodeURIComponent(c.slug) + '&preview=1' }, c.name) : h('span', {}, c.name)), rv ? h('label', { class: 'rv' }, rv, ' reveal solution lines') : null), h('td', { class: 'muted' }, c.category), h('td', { class: 'muted' }, c.idea || '')));
         }
       }
       root.appendChild(t);
       $('#allbox').checked = state.all;
+      for (const id of ['allbox', 'openall', 'closeall']) $('#' + id).disabled = !authenticated;
       $('#stamp').textContent = state.online ? ('server state' + (state.updatedAt ? ' · updated ' + new Date(state.updatedAt).toLocaleTimeString() : '')) : ('server unreachable: ' + (state.error || ''));
     }
     render();
+    async function authenticate() {
+      const attempt = ++authAttempt, candidate = keyIn.value.trim();
+      authenticated = false; render();
+      const valid = await verifyAdmin(candidate);
+      if (attempt !== authAttempt) return;
+      authenticated = valid;
+      if (valid) { keyVal = candidate; sessionStorage.setItem('ctf.adminkey', candidate); }
+      else sessionStorage.removeItem('ctf.adminkey');
+      render();
+      msg.className = 'note' + (valid ? ' ok' : candidate ? ' err' : '');
+      msg.textContent = valid ? 'Admin key verified. Preview links and controls are enabled.' : candidate ? 'Wrong admin key or server unavailable.' : 'Enter your admin key to enable controls and previews.';
+    }
+    keyIn.addEventListener('input', authenticate);
+    await authenticate();
     async function save() {
-      keyVal = keyIn.value.trim(); sessionStorage.setItem('ctf.adminkey', keyVal);
+      keyVal = keyIn.value.trim();
       const unlocked = [...boxes.entries()].filter(([, cb]) => cb.checked).map(([s]) => s);
       const body = { unlocked, all: $('#allbox').checked };
       msg.className = 'note'; msg.textContent = 'saving...';
       try {
         const r = await fetch(API + '/state', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + keyVal }, body: JSON.stringify(body) });
-        if (r.status === 401 || r.status === 403) { msg.className = 'note err'; msg.textContent = 'Wrong admin key.'; return; }
+        if (r.status === 401 || r.status === 403) { authenticated = false; sessionStorage.removeItem('ctf.adminkey'); render(); msg.className = 'note err'; msg.textContent = 'Wrong admin key.'; return; }
         if (!r.ok) throw new Error('HTTP ' + r.status);
         const j = await r.json(); state = { unlocked: j.unlocked || [], all: !!j.all, updatedAt: j.updatedAt, online: true }; setApiDot(state); render();
         msg.className = 'note ok'; msg.textContent = `Saved. ${unlocked.length} open${body.all ? ' (plus "open everything")' : ''}. Kids' pages pick it up within ${(CFG.POLL_MS || 8000) / 1000}s.`;

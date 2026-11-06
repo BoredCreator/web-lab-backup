@@ -13,6 +13,10 @@
   {
    "id": "wk9",
    "title": "The Server Believes You · week 9"
+  },
+  {
+   "id": "wk10",
+   "title": "When Words Become Commands · week 10"
   }
  ],
  "challenges": [
@@ -1308,6 +1312,945 @@
     ]
    },
    "flagHash": "93224b0ec069a63eb5918658ae2ad1bf379d2b764f4d44ae2eae0c6e584e83c4",
+   "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "snack-search",
+   "group": "wk10",
+   "name": "Snack Search",
+   "category": "Web Exploitation",
+   "difficulty": "easy",
+   "idea": "A query asks a table for matching rows.",
+   "description": "Read the snack table and ask the server for Orbit Bites. Read the returned stock before collecting the flag.",
+   "hints": [
+    "WHERE name matches the text you send.",
+    "Use the exact snack name shown in the table."
+   ],
+   "points": 1,
+   "point": "1 point",
+   "proxy": {
+    "host": "snack-search.flippedbyneel.com",
+    "flag": "flipped{snack_search_qu3ry_94ad}",
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "body": "<h1>Snack Search</h1><p>The delivery team needs the stock count for Orbit Bites.</p><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">name          stock\nMoon Chips    7\nCloud Pop     12\nOrbit Bites   4\nComet Crunch  9</pre><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">SELECT name, stock FROM snacks WHERE name = 'YOUR TEXT'</pre><form method=\"POST\" action=\"/search\"><p><label>Snack name <input name=\"name\" value=\"Moon Chips\" autocomplete=\"off\"></label></p><button>Search</button></form><details><summary>SQL reference</summary><p>WHERE keeps rows when its condition is true. OR needs either side true; AND needs both. AND runs before OR unless parentheses group it differently. A single quote ends quoted text. Outside text, -- ignores the rest of that line.</p><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">SELECT name FROM snacks WHERE id = 3\n1=1 is true; 1=2 is false</pre></details><p class=\"mut\">This is a small read-only SQL teaching model: SELECT, FROM, WHERE, =, !=, AND, OR, parentheses and -- comments; single quotes wrap text, and two single quotes inside text represent an apostrophe. It never connects to a real database.</p>"
+     },
+     {
+      "path": "/search",
+      "body": "",
+      "method": "POST",
+      "sql": {
+       "template": "SELECT name, stock FROM snacks WHERE name = '{input:name}'",
+       "tables": {
+        "snacks": [
+         {
+          "id": 1,
+          "name": "Moon Chips",
+          "stock": 7
+         },
+         {
+          "id": 2,
+          "name": "Cloud Pop",
+          "stock": 12
+         },
+         {
+          "id": 3,
+          "name": "Orbit Bites",
+          "stock": 4
+         },
+         {
+          "id": 4,
+          "name": "Comet Crunch",
+          "stock": 9
+         }
+        ]
+       },
+       "inputs": {
+        "name": {
+         "source": "form",
+         "name": "name"
+        }
+       },
+       "success": {
+        "count": 1,
+        "row": {
+         "name": "Orbit Bites",
+         "stock": 4
+        }
+       },
+       "successBody": "<h1>Orbit Bites has 4 in stock</h1><p>Lab flag: <code>{flag}</code></p><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "failureBody": "<h1>Search results</h1><p>Return home and search for the requested snack.</p><a href=\"/\">Home</a><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "errorBody": "<h1>The query could not run</h1><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "bound": false
+      }
+     }
+    ]
+   },
+   "flagHash": "3e999d688c32a4c0628884cfd6fcb20df47b2d579db4b1633f66bd0d488ecbec",
+   "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "quote-check",
+   "group": "wk10",
+   "name": "Quote Check",
+   "category": "Web Exploitation",
+   "difficulty": "medium",
+   "idea": "An apostrophe can expose an unsafe text boundary.",
+   "description": "Compare two responses and report the affected column after you have seen both a normal result and a quote error.",
+   "hints": [
+    "First search for moss and inspect Response.",
+    "Then send one single quote as the name and compare the query; report the column beside the equals sign."
+   ],
+   "points": 1,
+   "point": "1 point",
+   "proxy": {
+    "host": "quote-check.flippedbyneel.com",
+    "flag": "flipped{quote_check_qu3ry_e797}",
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "body": "<h1>Quote Check</h1><p>Compare a normal search for moss with a search containing one single quote, then report which column receives your text.</p><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">SELECT name FROM players WHERE name = 'YOUR TEXT'</pre><form method=\"POST\" action=\"/search\"><p><label>Player name <input name=\"name\" value=\"moss\" autocomplete=\"off\"></label></p><button>Search</button></form><form method=\"POST\" action=\"/report\"><p><label>Affected column <input name=\"column\" value=\"\" autocomplete=\"off\"></label></p><button>Report column</button></form><details><summary>SQL reference</summary><p>WHERE keeps rows when its condition is true. OR needs either side true; AND needs both. AND runs before OR unless parentheses group it differently. A single quote ends quoted text. Outside text, -- ignores the rest of that line.</p><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">SELECT name FROM snacks WHERE id = 3\n1=1 is true; 1=2 is false</pre></details><p class=\"mut\">This is a small read-only SQL teaching model: SELECT, FROM, WHERE, =, !=, AND, OR, parentheses and -- comments; single quotes wrap text, and two single quotes inside text represent an apostrophe. It never connects to a real database.</p>"
+     },
+     {
+      "path": "/search",
+      "body": "",
+      "method": "POST",
+      "sql": {
+       "template": "SELECT name FROM players WHERE name = '{input:name}'",
+       "tables": {
+        "players": [
+         {
+          "name": "moss"
+         },
+         {
+          "name": "fern"
+         }
+        ]
+       },
+       "inputs": {
+        "name": {
+         "source": "form",
+         "name": "name"
+        }
+       },
+       "success": {
+        "state": [
+         "never"
+        ]
+       },
+       "successBody": "<h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "failureBody": "<h1>Query evidence</h1><a href=\"/\">Return to report</a><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "errorBody": "<h1>Query evidence</h1><p>The quote changed where the SQL text ends.</p><a href=\"/\">Return to report</a><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "bound": false,
+       "record": [
+        {
+         "key": "ordinary",
+         "when": {
+          "row": {
+           "name": "moss"
+          },
+          "input": {
+           "name": "moss"
+          }
+         }
+        },
+        {
+         "key": "quote-error",
+         "when": {
+          "error": "Unclosed quoted text."
+         }
+        }
+       ]
+      }
+     },
+     {
+      "path": "/report",
+      "body": "<h1>Evidence checked</h1><p>Lab flag: <code>{flag}</code></p><p>The name field was pasted into SQL text.</p>",
+      "method": "POST",
+      "when": {
+       "state": [
+        "ordinary",
+        "quote-error"
+       ],
+       "bodyParam": {
+        "column": "name"
+       }
+      }
+     },
+     {
+      "path": "/report",
+      "body": "<h1>More evidence needed</h1><p>Run the ordinary and quote searches first, then report the affected column.</p><a href=\"/\">Home</a>",
+      "method": "POST"
+     }
+    ]
+   },
+   "flagHash": "b30f00d5df3eb681a5cc8449c79394932f91c5aa45db96774281c5bc9a84b7e9",
+   "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "every-flavor",
+   "group": "wk10",
+   "name": "Every Flavor",
+   "category": "Web Exploitation",
+   "difficulty": "easy",
+   "idea": "OR can make a filter match more rows.",
+   "description": "Return every flavor, including hidden Galaxy Grape, by widening the numeric filter.",
+   "hints": [
+    "The ID is placed into SQL without quotes.",
+    "Compare 0 OR 1=2 with 0 OR 1=1, and explain the difference."
+   ],
+   "points": 1,
+   "point": "1 point",
+   "proxy": {
+    "host": "every-flavor.flippedbyneel.com",
+    "flag": "flipped{every_flavor_qu3ry_6200}",
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "body": "<h1>Every Flavor</h1><p>Menu IDs: 1 Lime Loop, 2 Berry Byte. Return every flavor, including the hidden Galaxy Grape row.</p><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">SELECT id, name, hidden FROM flavors WHERE id = YOUR ID</pre><form method=\"POST\" action=\"/flavors\"><p><label>Flavor ID <input name=\"id\" value=\"0\" autocomplete=\"off\"></label></p><button>Find flavor</button></form><details><summary>SQL reference</summary><p>WHERE keeps rows when its condition is true. OR needs either side true; AND needs both. AND runs before OR unless parentheses group it differently. A single quote ends quoted text. Outside text, -- ignores the rest of that line.</p><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">SELECT name FROM snacks WHERE id = 3\n1=1 is true; 1=2 is false</pre></details><p class=\"mut\">This is a small read-only SQL teaching model: SELECT, FROM, WHERE, =, !=, AND, OR, parentheses and -- comments; single quotes wrap text, and two single quotes inside text represent an apostrophe. It never connects to a real database.</p>"
+     },
+     {
+      "path": "/flavors",
+      "body": "",
+      "method": "POST",
+      "sql": {
+       "template": "SELECT id, name, hidden FROM flavors WHERE id = {input:id}",
+       "tables": {
+        "flavors": [
+         {
+          "id": 1,
+          "name": "Lime Loop",
+          "hidden": 0
+         },
+         {
+          "id": 2,
+          "name": "Berry Byte",
+          "hidden": 0
+         },
+         {
+          "id": 7,
+          "name": "Galaxy Grape",
+          "hidden": 1
+         }
+        ]
+       },
+       "inputs": {
+        "id": {
+         "source": "form",
+         "name": "id"
+        }
+       },
+       "success": {
+        "minRows": 3,
+        "row": {
+         "name": "Galaxy Grape"
+        }
+       },
+       "successBody": "<h1>Every flavor returned</h1><p>Lab flag: <code>{flag}</code></p><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "failureBody": "<h1>Flavor results</h1><a href=\"/\">Home</a><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "errorBody": "<h1>The query could not run</h1><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "bound": false
+      }
+     }
+    ]
+   },
+   "flagHash": "876c2a32732d85fa45b5e56618a1b41f20e02ef87c895dbc36160c755dbdf4e5",
+   "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "backstage-snacks",
+   "group": "wk10",
+   "name": "Backstage Snacks",
+   "category": "Web Exploitation",
+   "difficulty": "medium",
+   "idea": "Quoted input can change a filter and comment out a trailing check.",
+   "description": "Reveal the unreleased Backstage Brownie by changing the category request.",
+   "hints": [
+    "Your text goes between single quotes, and released = 1 follows it.",
+    "Close the text, add an always-true OR condition, and use -- to ignore the leftover quote and release check."
+   ],
+   "points": 1,
+   "point": "1 point",
+   "proxy": {
+    "host": "backstage-snacks.flippedbyneel.com",
+    "flag": "flipped{backstage_snacks_qu3ry_901a}",
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "body": "<h1>Backstage Snacks</h1><p>Find the unreleased Backstage Brownie.</p><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">SELECT name, released FROM snacks WHERE category = 'YOUR CATEGORY' AND released = 1</pre><form method=\"POST\" action=\"/catalog\"><p><label>Category <input name=\"category\" value=\"snacks\" autocomplete=\"off\"></label></p><button>Browse</button></form><details><summary>SQL reference</summary><p>WHERE keeps rows when its condition is true. OR needs either side true; AND needs both. AND runs before OR unless parentheses group it differently. A single quote ends quoted text. Outside text, -- ignores the rest of that line.</p><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">SELECT name FROM snacks WHERE id = 3\n1=1 is true; 1=2 is false</pre></details><p class=\"mut\">This is a small read-only SQL teaching model: SELECT, FROM, WHERE, =, !=, AND, OR, parentheses and -- comments; single quotes wrap text, and two single quotes inside text represent an apostrophe. It never connects to a real database.</p>"
+     },
+     {
+      "path": "/catalog",
+      "body": "",
+      "method": "POST",
+      "sql": {
+       "template": "SELECT name, released FROM snacks WHERE category = '{input:category}' AND released = 1",
+       "tables": {
+        "snacks": [
+         {
+          "name": "Plain Pop",
+          "category": "snacks",
+          "released": 1
+         },
+         {
+          "name": "Backstage Brownie",
+          "category": "snacks",
+          "released": 0
+         },
+         {
+          "name": "Meme Milk",
+          "category": "drinks",
+          "released": 1
+         }
+        ]
+       },
+       "inputs": {
+        "category": {
+         "source": "form",
+         "name": "category"
+        }
+       },
+       "success": {
+        "row": {
+         "name": "Backstage Brownie"
+        }
+       },
+       "successBody": "<h1>Backstage stock found</h1><p>Lab flag: <code>{flag}</code></p><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "failureBody": "<h1>Catalog</h1><a href=\"/\">Home</a><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "errorBody": "<h1>The query could not run</h1><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "bound": false
+      }
+     }
+    ]
+   },
+   "flagHash": "83a6e2f570d9882e9d4e70883de01713bc0f50f77906cfe4800dfeb3840ea355",
+   "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "vip-roster",
+   "group": "wk10",
+   "name": "VIP Roster",
+   "category": "Web Exploitation",
+   "difficulty": "easy",
+   "idea": "A comment can remove an unsafe password predicate.",
+   "description": "Use the known pixelpanda account to show why pasted SQL text is unsafe.",
+   "hints": [
+    "The username is followed by a quote and an AND password check.",
+    "Target the given account and comment out the rest of the query."
+   ],
+   "points": 1,
+   "point": "1 point",
+   "proxy": {
+    "host": "vip-roster.flippedbyneel.com",
+    "flag": "flipped{vip_roster_qu3ry_7912}",
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "body": "<h1>VIP Roster</h1><p>Test only this pretend login. The target account is <strong>pixelpanda</strong>.</p><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">SELECT username, role FROM users WHERE username = 'YOUR USERNAME' AND password = 'YOUR PASSWORD'</pre><form method=\"POST\" action=\"/login\"><p><label>Username <input name=\"user\" value=\"moss\" autocomplete=\"off\"></label></p><p><label>Password <input name=\"password\" value=\"test\" autocomplete=\"off\"></label></p><button>Log in</button></form><details><summary>SQL reference</summary><p>WHERE keeps rows when its condition is true. OR needs either side true; AND needs both. AND runs before OR unless parentheses group it differently. A single quote ends quoted text. Outside text, -- ignores the rest of that line.</p><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">SELECT name FROM snacks WHERE id = 3\n1=1 is true; 1=2 is false</pre></details><p class=\"mut\">This is a small read-only SQL teaching model: SELECT, FROM, WHERE, =, !=, AND, OR, parentheses and -- comments; single quotes wrap text, and two single quotes inside text represent an apostrophe. It never connects to a real database.</p>"
+     },
+     {
+      "path": "/login",
+      "body": "",
+      "method": "POST",
+      "sql": {
+       "template": "SELECT username, role FROM users WHERE username = '{input:user}' AND password = '{input:password}'",
+       "tables": {
+        "users": [
+         {
+          "username": "moss",
+          "password": "leaf-secret",
+          "role": "member"
+         },
+         {
+          "username": "pixelpanda",
+          "password": "toy-vip-secret",
+          "role": "vip"
+         },
+         {
+          "username": "mosswarden",
+          "password": "toy-staff-secret",
+          "role": "staff"
+         }
+        ]
+       },
+       "inputs": {
+        "user": {
+         "source": "form",
+         "name": "user"
+        },
+        "password": {
+         "source": "form",
+         "name": "password"
+        }
+       },
+       "success": {
+        "first": {
+         "username": "pixelpanda"
+        }
+       },
+       "successBody": "<h1>VIP query bypassed</h1><p>Lab flag: <code>{flag}</code></p><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "failureBody": "<h1>Not the VIP account</h1><a href=\"/\">Home</a><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "errorBody": "<h1>The query could not run</h1><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "bound": false
+      }
+     }
+    ]
+   },
+   "flagHash": "61b9994535c37145a3cca9705b0bab3bb2271c7c10326ded6436aea49770bc9f",
+   "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "staff-pick",
+   "group": "wk10",
+   "name": "Staff Pick",
+   "category": "Web Exploitation",
+   "difficulty": "medium",
+   "idea": "A broad true condition can select the wrong account.",
+   "description": "The app uses the first matching account; sign in as mosswarden, not the first ordinary member.",
+   "hints": [
+    "A broad OR condition matches multiple users and the app takes the first row.",
+    "Use the named staff account before your closing quote and comment."
+   ],
+   "points": 1,
+   "point": "1 point",
+   "proxy": {
+    "host": "staff-pick.flippedbyneel.com",
+    "flag": "flipped{staff_pick_qu3ry_3c13}",
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "body": "<h1>Staff Pick</h1><p>Test only this pretend login. The target account is <strong>mosswarden</strong>.</p><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">SELECT username, role FROM users WHERE username = 'YOUR USERNAME' AND password = 'YOUR PASSWORD'</pre><form method=\"POST\" action=\"/login\"><p><label>Username <input name=\"user\" value=\"moss\" autocomplete=\"off\"></label></p><p><label>Password <input name=\"password\" value=\"test\" autocomplete=\"off\"></label></p><button>Log in</button></form><details><summary>SQL reference</summary><p>WHERE keeps rows when its condition is true. OR needs either side true; AND needs both. AND runs before OR unless parentheses group it differently. A single quote ends quoted text. Outside text, -- ignores the rest of that line.</p><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">SELECT name FROM snacks WHERE id = 3\n1=1 is true; 1=2 is false</pre></details><p class=\"mut\">This is a small read-only SQL teaching model: SELECT, FROM, WHERE, =, !=, AND, OR, parentheses and -- comments; single quotes wrap text, and two single quotes inside text represent an apostrophe. It never connects to a real database.</p><p>The app selects the first returned row. The ordinary member moss is first in the table.</p>"
+     },
+     {
+      "path": "/login",
+      "body": "",
+      "method": "POST",
+      "sql": {
+       "template": "SELECT username, role FROM users WHERE username = '{input:user}' AND password = '{input:password}'",
+       "tables": {
+        "users": [
+         {
+          "username": "moss",
+          "password": "leaf-secret",
+          "role": "member"
+         },
+         {
+          "username": "pixelpanda",
+          "password": "toy-vip-secret",
+          "role": "vip"
+         },
+         {
+          "username": "mosswarden",
+          "password": "toy-staff-secret",
+          "role": "staff"
+         }
+        ]
+       },
+       "inputs": {
+        "user": {
+         "source": "form",
+         "name": "user"
+        },
+        "password": {
+         "source": "form",
+         "name": "password"
+        }
+       },
+       "success": {
+        "first": {
+         "username": "mosswarden"
+        }
+       },
+       "successBody": "<h1>Staff account selected</h1><p>Lab flag: <code>{flag}</code></p><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "failureBody": "<h1>Wrong account or failed login</h1><p>The first returned row is the account the app would use.</p><a href=\"/\">Home</a><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "errorBody": "<h1>The query could not run</h1><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "bound": false
+      }
+     }
+    ]
+   },
+   "flagHash": "77e16212cd2e136bfeed859ac42a242a4a9f9abdd27c58d7d520e7ca22671f79",
+   "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "patch-the-search",
+   "group": "wk10",
+   "name": "Patch the Search",
+   "category": "Web Exploitation",
+   "difficulty": "easy",
+   "idea": "Bound values keep legitimate apostrophes and attack text as data.",
+   "description": "Repair the search and prove both the ordinary apostrophe name and the supplied attack behave correctly.",
+   "hints": [
+    "Choose fixed query + bound values.",
+    "Run both supplied values in the repaired mode; the real name should match one row and the attack should match none."
+   ],
+   "points": 1,
+   "point": "1 point",
+   "proxy": {
+    "host": "patch-the-search.flippedbyneel.com",
+    "flag": "flipped{patch_the_search_qu3ry_513d}",
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "body": "<h1>Patch the Search</h1><p>Select a repair, then run both tests: the real name <strong>O'Brien</strong> must return its own row, and the attack below must return zero rows.</p><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">x' OR 1=1 --</pre><form method=\"POST\" action=\"/test\"><p><label>Search name <input name=\"name\" value=\"O&#39;Brien\" autocomplete=\"off\"></label></p><p><label>Query construction <select name=\"mode\"><option value=\"paste\">Paste text into SQL</option><option value=\"bind\">Fixed query + bound values</option></select></label></p><button>Run test</button></form><details><summary>SQL reference</summary><p>WHERE keeps rows when its condition is true. OR needs either side true; AND needs both. AND runs before OR unless parentheses group it differently. A single quote ends quoted text. Outside text, -- ignores the rest of that line.</p><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">SELECT name FROM snacks WHERE id = 3\n1=1 is true; 1=2 is false</pre></details><p class=\"mut\">This is a small read-only SQL teaching model: SELECT, FROM, WHERE, =, !=, AND, OR, parentheses and -- comments; single quotes wrap text, and two single quotes inside text represent an apostrophe. It never connects to a real database.</p>"
+     },
+     {
+      "path": "/test",
+      "body": "",
+      "method": "POST",
+      "when": {
+       "bodyParam": {
+        "mode": "bind"
+       }
+      },
+      "sql": {
+       "template": "SELECT name, status FROM people WHERE name = {input:name}",
+       "tables": {
+        "people": [
+         {
+          "name": "O'Brien",
+          "status": "member"
+         },
+         {
+          "name": "Secret Badge",
+          "status": "hidden"
+         }
+        ]
+       },
+       "inputs": {
+        "name": {
+         "source": "form",
+         "name": "name"
+        }
+       },
+       "success": {
+        "state": [
+         "search-real",
+         "search-attack"
+        ]
+       },
+       "successBody": "<h1>Search repair verified</h1><p>Lab flag: <code>{flag}</code></p><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:checks}</pre><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "failureBody": "<h1>Search retest</h1><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:checks}</pre><a href=\"/\">Next test</a><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "errorBody": "<h1>The query could not run</h1><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p><a href=\"/\">Next test</a>",
+       "bound": true,
+       "progress": [
+        "search-real",
+        "search-attack"
+       ],
+       "record": [
+        {
+         "key": "search-real",
+         "when": {
+          "count": 1,
+          "row": {
+           "name": "O'Brien"
+          },
+          "input": {
+           "name": "O'Brien"
+          }
+         }
+        },
+        {
+         "key": "search-attack",
+         "when": {
+          "count": 0,
+          "unsafeRow": {
+           "name": "Secret Badge"
+          }
+         }
+        }
+       ],
+       "auditTemplate": "SELECT name, status FROM people WHERE name = '{input:name}'"
+      }
+     },
+     {
+      "path": "/test",
+      "body": "",
+      "method": "POST",
+      "when": {
+       "bodyParam": {
+        "mode": "paste"
+       }
+      },
+      "sql": {
+       "template": "SELECT name, status FROM people WHERE name = '{input:name}'",
+       "tables": {
+        "people": [
+         {
+          "name": "O'Brien",
+          "status": "member"
+         },
+         {
+          "name": "Secret Badge",
+          "status": "hidden"
+         }
+        ]
+       },
+       "inputs": {
+        "name": {
+         "source": "form",
+         "name": "name"
+        }
+       },
+       "success": {
+        "state": [
+         "never"
+        ]
+       },
+       "successBody": "<h1>Search repair verified</h1><p>Lab flag: <code>{flag}</code></p><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:checks}</pre><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "failureBody": "<h1>Search retest</h1><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:checks}</pre><a href=\"/\">Next test</a><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "errorBody": "<h1>The query could not run</h1><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p><a href=\"/\">Next test</a>",
+       "bound": false,
+       "progress": [
+        "search-real",
+        "search-attack"
+       ],
+       "record": []
+      }
+     },
+     {
+      "path": "/test",
+      "body": "<h1>Select a query construction mode</h1>",
+      "method": "POST"
+     }
+    ]
+   },
+   "flagHash": "83caaab2917e165918d44005616cb7a8dce9fb8fd0f2d253c6b7615d3cb7c93e",
+   "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "patch-the-login",
+   "group": "wk10",
+   "name": "Patch the Login",
+   "category": "Web Exploitation",
+   "difficulty": "medium",
+   "idea": "A login repair must accept valid credentials and reject the old bypass.",
+   "description": "Bind the login inputs and run both the supplied legitimate and attack tests.",
+   "hints": [
+    "The correct fix keeps query structure separate from both input values.",
+    "Both tests must pass in the fixed mode before the flag appears."
+   ],
+   "points": 1,
+   "point": "1 point",
+   "proxy": {
+    "host": "patch-the-login.flippedbyneel.com",
+    "flag": "flipped{patch_the_login_qu3ry_f0fb}",
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "body": "<h1>Patch the Login</h1><p>Valid toy login: <strong>rainfrog</strong> with password <strong>snack42</strong>.</p><p>Attack username below, with password test, must return zero rows after the repair.</p><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">rainfrog' --</pre><form method=\"POST\" action=\"/test\"><p><label>Username <input name=\"user\" value=\"rainfrog\" autocomplete=\"off\"></label></p><p><label>Password <input name=\"password\" value=\"snack42\" autocomplete=\"off\"></label></p><p><label>Query construction <select name=\"mode\"><option value=\"paste\">Paste text into SQL</option><option value=\"bind\">Fixed query + bound values</option></select></label></p><button>Run test</button></form><details><summary>SQL reference</summary><p>WHERE keeps rows when its condition is true. OR needs either side true; AND needs both. AND runs before OR unless parentheses group it differently. A single quote ends quoted text. Outside text, -- ignores the rest of that line.</p><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">SELECT name FROM snacks WHERE id = 3\n1=1 is true; 1=2 is false</pre></details><p class=\"mut\">This is a small read-only SQL teaching model: SELECT, FROM, WHERE, =, !=, AND, OR, parentheses and -- comments; single quotes wrap text, and two single quotes inside text represent an apostrophe. It never connects to a real database.</p>"
+     },
+     {
+      "path": "/test",
+      "body": "",
+      "method": "POST",
+      "when": {
+       "bodyParam": {
+        "mode": "bind"
+       }
+      },
+      "sql": {
+       "template": "SELECT username, role FROM users WHERE username = {input:user} AND password = {input:password}",
+       "tables": {
+        "users": [
+         {
+          "username": "rainfrog",
+          "password": "snack42",
+          "role": "member"
+         }
+        ]
+       },
+       "inputs": {
+        "user": {
+         "source": "form",
+         "name": "user"
+        },
+        "password": {
+         "source": "form",
+         "name": "password"
+        }
+       },
+       "success": {
+        "state": [
+         "login-real",
+         "login-attack"
+        ]
+       },
+       "successBody": "<h1>Login repair verified</h1><p>Lab flag: <code>{flag}</code></p><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:checks}</pre><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "failureBody": "<h1>Login retest</h1><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:checks}</pre><a href=\"/\">Next test</a><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "errorBody": "<h1>The query could not run</h1><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p><a href=\"/\">Next test</a>",
+       "bound": true,
+       "progress": [
+        "login-real",
+        "login-attack"
+       ],
+       "record": [
+        {
+         "key": "login-real",
+         "when": {
+          "count": 1,
+          "row": {
+           "username": "rainfrog"
+          },
+          "input": {
+           "user": "rainfrog",
+           "password": "snack42"
+          }
+         }
+        },
+        {
+         "key": "login-attack",
+         "when": {
+          "count": 0,
+          "unsafeRow": {
+           "username": "rainfrog"
+          }
+         }
+        }
+       ],
+       "auditTemplate": "SELECT username, role FROM users WHERE username = '{input:user}' AND password = '{input:password}'"
+      }
+     },
+     {
+      "path": "/test",
+      "body": "",
+      "method": "POST",
+      "when": {
+       "bodyParam": {
+        "mode": "paste"
+       }
+      },
+      "sql": {
+       "template": "SELECT username, role FROM users WHERE username = '{input:user}' AND password = '{input:password}'",
+       "tables": {
+        "users": [
+         {
+          "username": "rainfrog",
+          "password": "snack42",
+          "role": "member"
+         }
+        ]
+       },
+       "inputs": {
+        "user": {
+         "source": "form",
+         "name": "user"
+        },
+        "password": {
+         "source": "form",
+         "name": "password"
+        }
+       },
+       "success": {
+        "state": [
+         "never"
+        ]
+       },
+       "successBody": "<h1>Login repair verified</h1><p>Lab flag: <code>{flag}</code></p><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:checks}</pre><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "failureBody": "<h1>Login retest</h1><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:checks}</pre><a href=\"/\">Next test</a><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "errorBody": "<h1>The query could not run</h1><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p><a href=\"/\">Next test</a>",
+       "bound": false,
+       "progress": [
+        "login-real",
+        "login-attack"
+       ],
+       "record": []
+      }
+     },
+     {
+      "path": "/test",
+      "body": "<h1>Select a query construction mode</h1>",
+      "method": "POST"
+     }
+    ]
+   },
+   "flagHash": "d70c570138a7c44f01c12341c509a31f9d7008a6fddacd18e3ea634ed3ccb2f9",
+   "flagFormat": "flipped{...}"
+  },
+  {
+   "slug": "query-vault",
+   "group": "wk10",
+   "name": "Query Vault",
+   "category": "Web Exploitation",
+   "difficulty": "hard",
+   "idea": "Follow evidence, reveal a hidden row, then target the right account.",
+   "description": "Chain the site clue, roster query, and keeper login to open the final vault.",
+   "hints": [
+    "Read the initial Response for a debug path.",
+    "Use the roster query to reveal the keeper, then target that username in the login query."
+   ],
+   "points": 2,
+   "point": "2 points · final boss",
+   "proxy": {
+    "host": "query-vault.flippedbyneel.com",
+    "flag": "flipped{query_vault_qu3ry_75b6}",
+    "start": {
+     "method": "GET",
+     "path": "/"
+    },
+    "routes": [
+     {
+      "path": "/",
+      "body": "<h1>Query Vault</h1><p>The keeper roster is missing from the menu.</p><!-- query notes: /debug/sql -->"
+     },
+     {
+      "path": "/debug/sql",
+      "body": "<h1>Roster query notes</h1><p>The public category hides the keeper row.</p><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">SELECT name, role FROM roster WHERE category = 'YOUR CATEGORY'</pre><form method=\"POST\" action=\"/roster\"><p><label>Category <input name=\"category\" value=\"public\" autocomplete=\"off\"></label></p><button>Read roster</button></form><details><summary>SQL reference</summary><p>WHERE keeps rows when its condition is true. OR needs either side true; AND needs both. AND runs before OR unless parentheses group it differently. A single quote ends quoted text. Outside text, -- ignores the rest of that line.</p><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">SELECT name FROM snacks WHERE id = 3\n1=1 is true; 1=2 is false</pre></details><p class=\"mut\">This is a small read-only SQL teaching model: SELECT, FROM, WHERE, =, !=, AND, OR, parentheses and -- comments; single quotes wrap text, and two single quotes inside text represent an apostrophe. It never connects to a real database.</p>",
+      "recordState": [
+       "map-read"
+      ]
+     },
+     {
+      "path": "/roster",
+      "body": "",
+      "method": "POST",
+      "when": {
+       "state": [
+        "map-read"
+       ]
+      },
+      "sql": {
+       "template": "SELECT name, role FROM roster WHERE category = '{input:category}'",
+       "tables": {
+        "roster": [
+         {
+          "name": "moss",
+          "category": "public",
+          "role": "member"
+         },
+         {
+          "name": "voidotter",
+          "category": "secret",
+          "role": "keeper"
+         }
+        ]
+       },
+       "inputs": {
+        "category": {
+         "source": "form",
+         "name": "category"
+        }
+       },
+       "success": {
+        "row": {
+         "name": "voidotter"
+        }
+       },
+       "successBody": "<h1>Keeper discovered</h1><p>Use the keeper account at <a href=\"/keeper\">/keeper</a>.</p><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "failureBody": "<h1>Roster results</h1><a href=\"/debug/sql\">Query notes</a><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "errorBody": "<h1>The query could not run</h1><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "bound": false,
+       "record": [
+        {
+         "key": "keeper-found",
+         "when": {
+          "row": {
+           "name": "voidotter"
+          }
+         }
+        }
+       ]
+      }
+     },
+     {
+      "path": "/roster",
+      "body": "<h1>Read the query notes first</h1>",
+      "method": "POST"
+     },
+     {
+      "path": "/keeper",
+      "body": "<h1>Keeper login</h1><p>Use the keeper name you found in the roster.</p><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">SELECT username, role FROM users WHERE username = 'YOUR USERNAME' AND password = 'YOUR PASSWORD'</pre><form method=\"POST\" action=\"/unlock\"><p><label>Username <input name=\"user\" value=\"\" autocomplete=\"off\"></label></p><p><label>Password <input name=\"password\" value=\"test\" autocomplete=\"off\"></label></p><button>Open vault</button></form><details><summary>SQL reference</summary><p>WHERE keeps rows when its condition is true. OR needs either side true; AND needs both. AND runs before OR unless parentheses group it differently. A single quote ends quoted text. Outside text, -- ignores the rest of that line.</p><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">SELECT name FROM snacks WHERE id = 3\n1=1 is true; 1=2 is false</pre></details><p class=\"mut\">This is a small read-only SQL teaching model: SELECT, FROM, WHERE, =, !=, AND, OR, parentheses and -- comments; single quotes wrap text, and two single quotes inside text represent an apostrophe. It never connects to a real database.</p>",
+      "when": {
+       "state": [
+        "keeper-found"
+       ]
+      }
+     },
+     {
+      "path": "/keeper",
+      "body": "<h1>Find the keeper in the roster first</h1>"
+     },
+     {
+      "path": "/unlock",
+      "body": "",
+      "method": "POST",
+      "sql": {
+       "template": "SELECT username, role FROM users WHERE username = '{input:user}' AND password = '{input:password}'",
+       "tables": {
+        "users": [
+         {
+          "username": "moss",
+          "password": "toy-member",
+          "role": "member"
+         },
+         {
+          "username": "voidotter",
+          "password": "toy-keeper",
+          "role": "keeper"
+         }
+        ]
+       },
+       "inputs": {
+        "user": {
+         "source": "form",
+         "name": "user"
+        },
+        "password": {
+         "source": "form",
+         "name": "password"
+        }
+       },
+       "success": {
+        "first": {
+         "username": "voidotter"
+        },
+        "state": [
+         "map-read",
+         "keeper-found"
+        ]
+       },
+       "successBody": "<h1>Query Vault opened</h1><p>Lab flag: <code>{flag}</code></p><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "failureBody": "<h1>The vault stays closed</h1><a href=\"/keeper\">Keeper login</a><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "errorBody": "<h1>The query could not run</h1><h2>Server query</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:query}</pre><h2>Bound values</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:bindings}</pre><h2>Rows returned</h2><pre style=\"white-space:pre-wrap;overflow-wrap:anywhere\">{sql:rows}</pre><p>{sql:error}</p>",
+       "bound": false
+      }
+     }
+    ]
+   },
+   "flagHash": "7f3da709f17e1bf198177617ab7baff670900fd3795520326997012ba8a81e0c",
    "flagFormat": "flipped{...}"
   }
  ]
